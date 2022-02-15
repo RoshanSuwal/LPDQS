@@ -1,0 +1,8 @@
+data/
+.gradle
+.idea
+gradle
+**/build/
+Broker/build
+Server/build
+

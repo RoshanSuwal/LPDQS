@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+group 'org.ekbana'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    implementation 'org.projectlombok:lombok:1.18.16'
+    implementation 'org.junit.jupiter:junit-jupiter:5.4.2'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.1.0'
+
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
+}
