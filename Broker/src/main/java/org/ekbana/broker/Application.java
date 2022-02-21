@@ -74,9 +74,9 @@ public class Application {
         String topicName="test-3";
         Broker broker=new Broker();
         broker.print();
-        broker.createTopic(topicName);
+        broker.createTopic(topicName,0);
 
-        final Producer producer = broker.getProducer(topicName);
+        final Producer producer = broker.getProducer(topicName,0);
         producer.addRecords(new Records(Arrays.asList(
                 new Record(topicName,"message0",1),
                 new Record(topicName,"message1",1),
@@ -91,7 +91,7 @@ public class Application {
                 new Record(topicName,"message 6",1))));
 
         Thread.sleep(5000);
-        Consumer consumer=broker.getConsumer(topicName);
+        Consumer consumer=broker.getConsumer(topicName,0);
 
         final Records records = consumer.getRecords(0, false);
         records.stream().forEach(System.out::println);

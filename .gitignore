@@ -5,4 +5,11 @@ gradle
 **/build/
 Broker/build
 Server/build
+Server/src/main/java/org/ekbana/server/network
+Server/src/main/java/org/ekbana/server/transport
+Server/src/main/java/org/ekbana/server/topic
+Server/src/main/java/org/ekbana/server/controller
+Server/src/main/java/org/ekbana/server/entity
+Server/src/main/java/org/ekbana/server/transaction
+Server/src/main/java/org/ekbana/server/MiniKafka.java
 

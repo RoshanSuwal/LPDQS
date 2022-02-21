@@ -14,7 +14,7 @@ public class Producer {
     private final RecordsQueue<Records> recordsQueue;
 //    private final SegmentPolicy segmentPolicy;
 //    private final SegmentCallback segmentCallback;
-    private Segment activeSegment;
+//    private Segment activeSegment;
 
     private RecordsCallback<Records> recordsCallback;
 

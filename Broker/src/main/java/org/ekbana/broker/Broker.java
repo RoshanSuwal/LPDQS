@@ -33,22 +33,22 @@ public class Broker {
         }
     }
 
-    public void createTopic(String topicName){
-        removeTopic(topicName);
-        topicHashMap.put(topicName,new Topic(topicName,true,producerExecutorService));
+    public void createTopic(String topicName,int partitionId){
+        removeTopic(topicName,partitionId);
+        topicHashMap.put(topicName+"-"+partitionId,new Topic(topicName+"-"+partitionId,true,producerExecutorService));
     }
 
-    public void removeTopic(String topicName){
-        FileUtil.deleteDirectory(BrokerConfig.getInstance().getDATA_PATH()+topicName);
+    public void removeTopic(String topicName,int partitionId){
+        FileUtil.deleteDirectory(BrokerConfig.getInstance().getDATA_PATH()+topicName+"-"+partitionId);
         topicHashMap.remove(topicName);
     }
 
-    public Producer getProducer(String topicName){
-        return topicHashMap.get(topicName).getProducer();
+    public Producer getProducer(String topicName,int partition){
+        return topicHashMap.get(topicName+"-"+partition).getProducer();
     }
 
-    public Consumer getConsumer(String topicName){
-        return topicHashMap.get(topicName).getConsumer();
+    public Consumer getConsumer(String topicName,int partition){
+        return topicHashMap.get(topicName+"-"+partition).getConsumer();
     }
 
     public Topic getTopic(String topicName){
