@@ -5,19 +5,20 @@ import org.ekbana.server.common.mb.RequestTransaction;
 import java.util.Arrays;
 
 public class TransactionHelper {
-    private final RequestTransaction requestTransaction;
+    private final Object obj;
     private final Node[] nodes;
     private final ThreePhaseTransactionStatus[] threePhaseTransactionStatuses;
 
-    public TransactionHelper(RequestTransaction requestTransaction){
-        this.requestTransaction=requestTransaction;
-        this.nodes=requestTransaction.getPartitionNodes();
+    public TransactionHelper(Object obj,Node[] nodes){
+        this.obj=obj;
+        this.nodes=nodes;
+//        this.nodes=requestTransaction.getPartitionNodes();
         threePhaseTransactionStatuses=new ThreePhaseTransactionStatus[nodes.length];
         Arrays.fill(threePhaseTransactionStatuses, ThreePhaseTransactionStatus.SEND);
     }
 
-    public RequestTransaction getRequestTransaction(){
-        return requestTransaction;
+    public Object getObj(){
+        return obj;
     }
 
     public ThreePhaseTransactionStatus getThreePhaseTransactionStatus(Node node){

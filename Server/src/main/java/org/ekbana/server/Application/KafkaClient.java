@@ -2,13 +2,16 @@ package org.ekbana.server.Application;
 
 import com.google.gson.Gson;
 import org.ekbana.server.common.cm.request.AuthRequest;
+import org.ekbana.server.common.cm.request.ProducerConfigRequest;
+import org.ekbana.server.common.cm.request.ProducerRecordWriteRequest;
 import org.ekbana.server.common.cm.request.TopicCreateRequest;
-import org.ekbana.server.common.cm.request.TopicDeleteRequest;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
+import java.util.List;
 
 public class KafkaClient {
     private final InetSocketAddress inetSocketAddress;
@@ -31,9 +34,10 @@ public class KafkaClient {
         }).start();
     }
 
-    public void write(String  message) throws IOException {
+    public void write(String  message) throws IOException, InterruptedException {
         ByteBuffer buffer=ByteBuffer.wrap(message.getBytes());
         channel.write(buffer);
+        Thread.sleep(200);
         buffer.clear();
     }
 
@@ -54,13 +58,31 @@ public class KafkaClient {
         System.exit(0);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         KafkaClient kafkaClient=new KafkaClient("localhost",9999);
         kafkaClient.startClient();
 
         kafkaClient.write(new Gson().toJson(new AuthRequest()));
-        kafkaClient.write(new Gson().toJson(new TopicCreateRequest("tweet",1)));
-//        kafkaClient.write(new Gson().toJson(new TopicDeleteRequest("test")));
-    }
 
+
+//        Thread.sleep(20000);
+        kafkaClient.write(new Gson().toJson(new TopicCreateRequest("tweet-29500",1)));
+
+//        Thread.sleep(5000);
+//        kafkaClient.write(new Gson().toJson(new TopicDeleteRequest("tweet-19500")));
+
+//        kafkaClient.write(new Gson().toJson(new ProducerConfigRequest("tweet-19500")));
+//
+//        List<String> records= Arrays.asList("hello","world","first record","second record");
+//        final ProducerRecordWriteRequest producerRecordWriteRequest = new ProducerRecordWriteRequest();
+//        producerRecordWriteRequest.setTopicName("tweet-19500");
+//        producerRecordWriteRequest.setProducerRecords(records);
+//
+////        kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
+//
+//        for (int i=0;i<10;i++){
+//            kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
+//            Thread.sleep(1000);
+//        }
+    }
 }

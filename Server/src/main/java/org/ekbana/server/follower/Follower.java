@@ -6,31 +6,47 @@ import org.ekbana.server.leader.KafkaServerConfig;
 import java.nio.channels.SocketChannel;
 
 public class Follower extends ClientSocket {
+    enum FollowerState {
+        NOT_CONNECTED, CONNECTED, AUTHENTICATED,CLOSE
+    }
+
     private KafkaServerConfig kafkaServerConfig;
     private FollowerController.Listener<byte[]> listener;
+    private FollowerState followerState;
 
     public Follower(KafkaServerConfig kafkaServerConfig) {
         super(kafkaServerConfig.getServer_address(), kafkaServerConfig.getPort());
-        this.kafkaServerConfig=kafkaServerConfig;
+        this.kafkaServerConfig = kafkaServerConfig;
+        this.followerState = FollowerState.NOT_CONNECTED;
     }
 
-    public void registerListener(FollowerController.Listener<byte[]> listener){
-        this.listener=listener;
+    public FollowerState getFollowerState() {
+        return followerState;
+    }
+
+    public void setFollowerState(FollowerState followerState) {
+        this.followerState = followerState;
+    }
+
+    public void registerListener(FollowerController.Listener<byte[]> listener) {
+        this.listener = listener;
     }
 
     @Override
     protected void onStart(SocketChannel socketChannel) {
-        System.out.println("Follower connected to "+ socketChannel.socket().getRemoteSocketAddress());
+        System.out.println("Follower connected to " + socketChannel.socket().getRemoteSocketAddress());
     }
 
     @Override
     protected void onClose() {
-
+        System.out.println("Socket Connection Closed");
     }
 
     @Override
     protected void onRead(byte[] readBytes) {
+        if (listener != null) listener.onListen(readBytes);
+
 //        System.out.println("read bytes" + readBytes.length);
-        if (listener!=null) listener.onListen(readBytes);
+//        if (listener!=null) listener.onListen(readBytes);
     }
 }

@@ -20,12 +20,15 @@ public class Broker {
 //    private final ExecutorService consumerExecutorService= Executors.newFixedThreadPool(10);
 
     public Broker() {
-        loadTopics();
+
     }
 
+    public void load(){
+        loadTopics();
+    }
     private void loadTopics(){
         try {
-            FileUtil.getFiles(BrokerConfig.getInstance().getDATA_PATH())
+            FileUtil.getDirectories(BrokerConfig.getInstance().getDATA_PATH())
                     .map(File::getName)
                     .forEach(topicName -> topicHashMap.put(topicName, new Topic(topicName, false,producerExecutorService)));
         }catch (IOException e) {

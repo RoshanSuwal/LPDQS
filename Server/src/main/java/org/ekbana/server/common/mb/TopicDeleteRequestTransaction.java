@@ -13,6 +13,9 @@ public class TopicDeleteRequestTransaction extends RequestTransaction {
         super(transactionId, transactionType, topic, requestType);
     }
 
+    public int[] getPartitions(){
+        return new int[]{0};
+    }
     @Override
     public Node[] getPartitionNodes() {
         return getTopic().getDataNode();

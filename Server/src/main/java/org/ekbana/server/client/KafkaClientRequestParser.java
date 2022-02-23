@@ -20,8 +20,8 @@ public class KafkaClientRequestParser {
                    case CONSUMER_CONFIG -> new Gson().fromJson(jsonObject,ConsumerConfigRequest.class);
                    case CONSUMER_RECORD_READ -> new Gson().fromJson(jsonObject,ConsumerRecordReadRequest.class);
                    case CONSUMER_OFFSET_COMMIT -> new Gson().fromJson(jsonObject,ConsumerCommitOffsetRequest.class);
-                   case INVALID -> new InvalidRequest("invalid request");
                    case CLOSE_CLIENT ->new Gson().fromJson(jsonObject,CloseClientRequest.class);
+                   case INVALID -> new InvalidRequest("invalid request");
                    case NON_PARSABLE -> new NonParsableRequest();
                    case NEW_CONNECTION -> new NewConnectionRequest();
                }:new NonParsableRequest();

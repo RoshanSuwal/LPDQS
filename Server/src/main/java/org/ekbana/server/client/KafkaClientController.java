@@ -1,16 +1,13 @@
 package org.ekbana.server.client;
 
-import com.google.gson.Gson;
-import lombok.RequiredArgsConstructor;
 import org.ekbana.server.common.Router;
 import org.ekbana.server.common.cm.request.KafkaClientRequest;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
 import org.ekbana.server.util.Mapper;
+import org.ekbana.server.util.QueueProcessor;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
-@RequiredArgsConstructor
 public class KafkaClientController {
     private final KafkaClientConfig kafkaClientConfig;
     private final KafkaClientRequestParser kafkaClientRequestParser;
@@ -19,6 +16,18 @@ public class KafkaClientController {
 
     private final Mapper<Long,KafkaClient> kafkaClientRequestMapper;
     private Long clientRequestId=0L;
+
+    private final QueueProcessor<KafkaClientResponse> kafkaClientResponseQueueProcessor;
+
+    public KafkaClientController(KafkaClientConfig kafkaClientConfig, KafkaClientRequestParser kafkaClientRequestParser, KafkaClientProcessor kafkaClientProcessor, Router.KafkaClientRouter kafkaClientRouter, Mapper<Long, KafkaClient> kafkaClientRequestMapper, ExecutorService executorService) {
+        this.kafkaClientConfig = kafkaClientConfig;
+        this.kafkaClientRequestParser = kafkaClientRequestParser;
+        this.kafkaClientProcessor = kafkaClientProcessor;
+        this.kafkaClientRouter = kafkaClientRouter;
+        this.kafkaClientRequestMapper = kafkaClientRequestMapper;
+        QueueProcessor.QueueProcessorListener<KafkaClientResponse> kafkaClientResponseQueueProcessorListener = this::send;
+        kafkaClientResponseQueueProcessor=new QueueProcessor<>(100, kafkaClientResponseQueueProcessorListener,executorService);
+    }
 
     public Long getClientRequestId(){
         clientRequestId=clientRequestId+1;
@@ -33,27 +42,32 @@ public class KafkaClientController {
     public void request(KafkaClient kafkaClient,KafkaClientRequest kafkaClientRequest){
         kafkaClientRequest.setClientRequestId(getClientRequestId());
         kafkaClientRequestMapper.add(kafkaClientRequest.getClientRequestId(),kafkaClient);
-
-        System.out.println("[KAFKA CLIENT SERVER][REQUEST] "+kafkaClientRequest);
+        log("api",kafkaClientRequest);
         // validation and processing of the request
         KafkaClientRequest kafkaClientProcessedRequest = kafkaClientProcessor.processRequest(kafkaClient, kafkaClientRequest);
         // send it to server
-        System.out.println("[KAFKA CLIENT SERVER][PROCESS REQUEST]  "+kafkaClientRequest);
+        log("process",kafkaClientProcessedRequest);
         kafkaClientRouter.routeFromClientToFollower(kafkaClientProcessedRequest);
     }
 
-    public synchronized void  response(KafkaClientResponse kafkaClientResponse){
+    private void log(String fromTo,Object object){
+        System.out.println("[Client] ["+fromTo+"] "+object);
+    }
 
-        System.out.println("[KAFKA CLIENT SERVER][RESPONSE] "+kafkaClientResponse);
+    public synchronized void  response(KafkaClientResponse kafkaClientResponse){
+        kafkaClientResponseQueueProcessor.push(kafkaClientResponse,false);
+    }
+
+    public void send(KafkaClientResponse kafkaClientResponse){
         // fetch the kafkaClient using the request response id
         //
+        log("api",kafkaClientResponse);
         if (kafkaClientRequestMapper.has(kafkaClientResponse.getClientResponseId())){
-            kafkaClientRequestMapper.get(kafkaClientResponse.getClientResponseId()).send(kafkaClientResponse);
+            final KafkaClient kafkaClient = kafkaClientRequestMapper.get(kafkaClientResponse.getClientResponseId());
+            kafkaClient.send(kafkaClientProcessor.processResponse(kafkaClient,kafkaClientResponse));
+
         }
         kafkaClientRequestMapper.delete(kafkaClientResponse.getClientResponseId());
     }
-
-
-
 
 }

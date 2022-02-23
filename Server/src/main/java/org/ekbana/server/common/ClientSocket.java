@@ -48,11 +48,11 @@ public abstract class ClientSocket {
                 }
                 byteBuffer.clear();
 
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    Thread.sleep(10);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
             }
         }catch (IOException e) {
             e.printStackTrace();
@@ -61,13 +61,14 @@ public abstract class ClientSocket {
         }
     }
 
-    private void close(){
+    public void close(){
         onClose();
         try {
             socketChannel.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.exit(0);
     }
 
     protected abstract void onStart(SocketChannel socketChannel);

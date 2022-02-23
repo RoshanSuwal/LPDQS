@@ -3,6 +3,7 @@ package org.ekbana.server.leader;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.ekbana.server.common.KafkaServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -10,7 +11,7 @@ import java.nio.channels.SocketChannel;
 
 @AllArgsConstructor
 @Getter @Setter
-public class LeaderClient {
+public class LeaderClient implements KafkaServer.KafkaServerClient {
 
     // has 3 roles
     // 1. ClientServerTransportClient
@@ -24,14 +25,15 @@ public class LeaderClient {
     //     CTC      BTC     RTC
 
     private final SocketChannel socketChannel;
-    private final LeaderClientState leaderClientState;
+    private LeaderClientState leaderClientState;
 
-    private final Node node;
+    private Node node;
 
-    public void send(byte[] bytes){
+    public synchronized void send(byte[] bytes){
         try {
             socketChannel.write(ByteBuffer.wrap(bytes));
-        } catch (IOException e) {
+            Thread.sleep(100);
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }

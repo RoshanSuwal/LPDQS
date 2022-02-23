@@ -4,10 +4,17 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.ekbana.server.common.cm.request.*;
 import org.ekbana.server.common.cm.response.BaseResponse;
+import org.ekbana.server.common.cm.response.ConsumerConfigResponse;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
+import org.ekbana.server.common.cm.response.ProducerConfigResponse;
+import org.ekbana.server.common.l.LFRequest;
+import org.ekbana.server.common.l.LFResponse;
 import org.ekbana.server.common.l.LRequest;
 import org.ekbana.server.common.l.LResponse;
+import org.ekbana.server.common.lr.RBaseTransaction;
+import org.ekbana.server.common.lr.RTransaction;
 import org.ekbana.server.common.mb.*;
+import org.ekbana.server.replica.Replica;
 import org.ekbana.server.util.Deserializer;
 import org.ekbana.server.util.Mapper;
 import org.ekbana.server.util.QueueProcessor;
@@ -26,17 +33,41 @@ public class LeaderController {
 
     private final Mapper<Long,KafkaClientRequestWrapper> transactionClientMapper;
 
-    private final Mapper<String, Topic> topicMapper;
+    private final Replica replica;
 
     private final QueueProcessor<Transaction> transactionRequestProcessor;
     private final QueueProcessor<KafkaClientResponseWrapper> clientResponseProcessor;
+    private final QueueProcessor<Object> leaderClientRRProcessor;
 
-    private QueueProcessor.QueueProcessorListener<KafkaClientResponseWrapper> kafkaClientResponseQueueProcessorListener= kafkaClientResponseWrapper -> {
-                try {
-                    responseToClient(kafkaClientResponseWrapper.getLeaderClient(), kafkaClientResponseWrapper.getKafkaClientResponse());
-                } catch (IOException e) {
-                    e.printStackTrace();
+    private QueueProcessor.QueueProcessorListener<Object> kafkaLeaderClientQueueProcessor=new QueueProcessor.QueueProcessorListener<Object>() {
+        @Override
+        public void process(Object o) {
+
+            try {
+                if (o instanceof KafkaClientResponseWrapper) {
+                    final KafkaClientResponseWrapper o1 = (KafkaClientResponseWrapper) o;
+                    print(o1.getLeaderClient().getNode(),o1.getKafkaClientResponse());
+                    responseToClient(o1.leaderClient, o1.getKafkaClientResponse());
+                } else if (o instanceof KafkaTransactionWrapper) {
+                    final KafkaTransactionWrapper o2 = (KafkaTransactionWrapper) o;
+                    print(o2.getLeaderClient().getNode(),o2.getTransaction());
+                    transactionToNode(o2.getLeaderClient(), o2.getTransaction());
+                }else if (o instanceof KafkaRTransactionWrapper){
+                    final KafkaRTransactionWrapper o3 = (KafkaRTransactionWrapper) o;
+                    print(o3.getLeaderClient().getNode(),o3.getRTransaction());
+                    rTransactionToReplica(o3.leaderClient ,o3.getRTransaction());
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+    private QueueProcessor.QueueProcessorListener<KafkaClientResponseWrapper> kafkaClientResponseQueueProcessorListener= kafkaClientResponseWrapper -> {
+//                try {
+////                    responseToClient(kafkaClientResponseWrapper.getLeaderClient(), kafkaClientResponseWrapper.getKafkaClientResponse());
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
             };
 
     private  QueueProcessor.QueueProcessorListener<Transaction> transactionQueueProcessorListener= transaction -> {
@@ -47,24 +78,28 @@ public class LeaderController {
         }
     };
 
-    public LeaderController(KafkaServerConfig kafkaServerConfig, Deserializer deserializer, Serializer serializer, NodeClientMapper nodeClientMapper, TransactionManager transactionManager, Mapper<String, Topic> topicMapper, ExecutorService executorService) {
+    public LeaderController(KafkaServerConfig kafkaServerConfig, Deserializer deserializer, Serializer serializer, NodeClientMapper nodeClientMapper, TransactionManager transactionManager, Replica replica, ExecutorService executorService) {
         this.kafkaServerConfig = kafkaServerConfig;
         this.deserializer = deserializer;
         this.serializer = serializer;
         this.nodeClientMapper = nodeClientMapper;
         this.transactionManager = transactionManager;
-        this.topicMapper = topicMapper;
+        this.replica = replica;
 
         transactionClientMapper=new Mapper<>();
         transactionRequestProcessor=new QueueProcessor<>(kafkaServerConfig.getQueueSize(),transactionQueueProcessorListener,executorService);
         clientResponseProcessor=new QueueProcessor<>(kafkaServerConfig.getQueueSize(),kafkaClientResponseQueueProcessorListener,executorService);
+        leaderClientRRProcessor=new QueueProcessor<>(kafkaServerConfig.getQueueSize(),kafkaLeaderClientQueueProcessor,executorService);
     }
 
     public void rawData(LeaderClient leaderClient, byte[] data){
         // deserialize the raw data
         try {
             final Object deserialized = deserializer.deserialize(data);
-            if (deserialized instanceof LRequest){
+            print(leaderClient.getNode(),deserialized);
+            if (deserialized instanceof LFRequest){
+                processFollowerRequest(leaderClient, (LFRequest) deserialized);
+            }if (deserialized instanceof LRequest){
                 processRequest(leaderClient,(LRequest) deserialized);
             }else if (deserialized instanceof LResponse){
                 processResponse(leaderClient,(LResponse) deserialized);
@@ -74,9 +109,37 @@ public class LeaderController {
         }
     }
 
+    public void print(Node node,Object obj){
+        System.out.println("[Leader] ["+node.getAddress()+"] "+obj);
+    }
+
+    protected void processFollowerRequest(LeaderClient leaderClient,LFRequest lfRequest){
+        if (lfRequest.getLfRequestType()== LFRequest.LFRequestType.NEW){
+            leaderClient.setLeaderClientState(LeaderClientState.CONNECTED);
+            try {
+                final LFResponse obj = new LFResponse(LFResponse.LFResponseType.CONNECTED);
+                print(leaderClient.getNode(),obj);
+                leaderClient.send(serializer.serialize(obj));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if (lfRequest.getLfRequestType()== LFRequest.LFRequestType.AUTH){
+            try {
+                leaderClient.setLeaderClientState(LeaderClientState.AUTHENTICATED);
+                final LFResponse obj = new LFResponse(LFResponse.LFResponseType.AUTHENTICATED);
+                print(leaderClient.getNode(),obj);
+                leaderClient.send(serializer.serialize(obj));
+                leaderClient.setNode(new Node(lfRequest.getNodeId()));
+                addNode(leaderClient);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void processRequest(LeaderClient leaderClient,LRequest lRequest){
         switch (lRequest.getMode()){
-            case MODE_REPLICA -> requestFromReplica();
+            case MODE_REPLICA -> requestFromReplica(leaderClient, (RTransaction) lRequest.getObject());
             case MODE_DATA -> requestFromDataNode();
             case MODE_CLIENT -> requestFromClient(leaderClient,(KafkaClientRequest) lRequest.getObject());
         }
@@ -84,7 +147,7 @@ public class LeaderController {
 
     public void processResponse(LeaderClient leaderClient,LResponse lResponse){
         switch (lResponse.getMode()){
-            case MODE_REPLICA -> responseFromReplica();
+            case MODE_REPLICA -> responseFromReplica(leaderClient,(RTransaction) lResponse.getObject());
             case MODE_DATA -> responseFromData(leaderClient,(Transaction) lResponse.getObject());
             case MODE_CLIENT -> responseFromClient();
         }
@@ -95,13 +158,16 @@ public class LeaderController {
     }
 
     private void responseFromData(LeaderClient leaderClient, Transaction transaction) {
-        System.out.println("[DATA->LEADER] "+transaction);
+        System.out.println("[Leader Controller] "+transaction);
         if (transaction.getAction()== TransactionType.Action.ACKNOWLEDGE){
             // send commit request
             if (transactionManager.hasTransaction(transaction.getTransactionId())) {
                 transactionManager.updateTransaction3PhaseStatus(transaction.getTransactionId(), leaderClient.getNode(), ThreePhaseTransactionStatus.ACK);
                 if (transactionManager.readyToCommit(transaction.getTransactionId())) {
                     transactionRequestProcessor.push(new CommitRequestTransaction(transaction.getTransactionId()), true);
+                    if (transactionManager.hasTransaction(transaction.getTransactionId())) {
+                        requestToReplica(leaderClient, (RequestTransaction) transactionManager.getTransaction(transaction.getTransactionId()));
+                    }
                 }
             }
         }else if (transaction.getAction()== TransactionType.Action.PASS){
@@ -116,11 +182,14 @@ public class LeaderController {
         }
     }
 
-    private void responseFromReplica() {
+    private void responseFromReplica(LeaderClient leaderClient, RTransaction rTransaction) {
         // heartbeat and synchronization
+        if (rTransaction.getRTransactionType()== RTransaction.RTransactionType.ACKNOWLEDGE){
+            leaderClientRRProcessor.push(new KafkaRTransactionWrapper(new RTransaction(rTransaction.getRTransactionId(), RTransaction.RTransactionType.COMMIT),leaderClient),false);
+        }
     }
 
-    public void requestFromReplica(){
+    public void requestFromReplica(LeaderClient leaderClient,RTransaction rTransaction){
 
     }
 
@@ -130,13 +199,42 @@ public class LeaderController {
 
     public void requestFromClient(LeaderClient leaderClient, KafkaClientRequest kafkaClientRequest){
 
-        System.out.println("[CLIENT->LEADER] "+kafkaClientRequest);
-
         switch (kafkaClientRequest.getRequestType()){
             case PRODUCER_RECORD_WRITE -> {
+                // partitioning logic
                 // send request to data and replica node
                 // convert to producer write transaction
                 // register in transaction mapper
+
+                final ProducerRecordWriteRequest producerRecordWriteRequest = (ProducerRecordWriteRequest) kafkaClientRequest;
+                if (replica.hasTopic(producerRecordWriteRequest.getTopicName())){
+                    // send to partition logic and get partition id
+                    Topic topic=replica.getTopic(producerRecordWriteRequest.getTopicName());
+                    int partitionId=0;
+                    // Topology -> topic, key,partitionId, record_count
+
+                    final ProducerRecordWriteRequestTransaction producerRecordWriteRequestTransaction = new ProducerRecordWriteRequestTransaction(
+                            TransactionIdGenerator.getTransactionId(),
+                            TransactionType.Action.REGISTER,
+                            topic,
+                            partitionId,
+                            producerRecordWriteRequest.getProducerRecords()
+                    );
+
+                    transactionClientMapper.add(producerRecordWriteRequestTransaction.getTransactionId(),
+                            new KafkaClientRequestWrapper(kafkaClientRequest.getRequestType(),kafkaClientRequest.getClientRequestId(),leaderClient));
+                    transactionRequestProcessor.push(producerRecordWriteRequestTransaction,false);
+                }else {
+                    leaderClientRRProcessor.push(
+                            new KafkaClientResponseWrapper(
+                                    new BaseResponse(kafkaClientRequest.getClientRequestId(),
+                                            kafkaClientRequest.getRequestType(),
+                                            KafkaClientResponse.ResponseType.FAIL,
+                                            "topic does not exists"),
+                                    leaderClient
+                            ),false);
+                }
+
             }case CONSUMER_RECORD_READ -> {
                 // send request to data node
             }case CONSUMER_OFFSET_COMMIT -> {
@@ -144,9 +242,9 @@ public class LeaderController {
             }case TOPIC_CREATE -> {
                 final TopicCreateRequest topicCreateRequest = (TopicCreateRequest) kafkaClientRequest;
                 // validation of topic, partition
-                if (topicMapper.has(topicCreateRequest.getTopicName())){
+                if (replica.hasTopic(topicCreateRequest.getTopicName())){
                     // throw topic already exists response
-                    clientResponseProcessor.push(new KafkaClientResponseWrapper(
+                    leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
                             new BaseResponse(
                                 kafkaClientRequest.getClientRequestId(),
                                     kafkaClientRequest.getRequestType(),
@@ -157,11 +255,15 @@ public class LeaderController {
                 }
                 // create a topic
                 // select the nodes for topic creation
+                // resource manager, number of partition
                 final Topic newTopic = Topic.builder()
                         .topicName(((TopicCreateRequest) kafkaClientRequest).getTopicName())
                         .numberOfPartitions(1)
                         .dataNode(new Node[]{nodeClientMapper.getAnyNode()})
                         .build();
+                // resource manager
+                // node manager
+                // partition policy -
                 // send request to each node
                 // create create topic request transaction
                 final TopicCreateRequestTransaction topicCreateRequestTransaction = new TopicCreateRequestTransaction(TransactionIdGenerator.getTransactionId(),
@@ -174,9 +276,9 @@ public class LeaderController {
             }case TOPIC_DELETE -> {
                 final TopicDeleteRequest topicDeleteRequest = (TopicDeleteRequest) kafkaClientRequest;
                 // topic validation
-                if (!topicMapper.has(topicDeleteRequest.getTopicName())){
+                if (!replica.hasTopic(topicDeleteRequest.getTopicName())){
                     // throw topic does not exists response
-                    clientResponseProcessor.push(new KafkaClientResponseWrapper(
+                    leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
                             new BaseResponse(
                                     kafkaClientRequest.getClientRequestId(),
                                     kafkaClientRequest.getRequestType(),
@@ -185,7 +287,7 @@ public class LeaderController {
                             ),leaderClient),false);
                     return;
                 }
-                final Topic deleteTopic = topicMapper.get(topicDeleteRequest.getTopicName());
+                final Topic deleteTopic = replica.getTopic(topicDeleteRequest.getTopicName());
                 TopicDeleteRequestTransaction topicDeleteRequestTransaction=
                         new TopicDeleteRequestTransaction(TransactionIdGenerator.getTransactionId(),
                                 TransactionType.Action.REGISTER,
@@ -196,9 +298,9 @@ public class LeaderController {
             }case PRODUCER_CONFIG -> {
                 final ProducerConfigRequest producerConfigRequest = (ProducerConfigRequest) kafkaClientRequest;
                 // topic and partition validation
-                if (!topicMapper.has(producerConfigRequest.getTopicName())){
+                if (!replica.hasTopic(producerConfigRequest.getTopicName())){
                     // throw topic does not exists response
-                    clientResponseProcessor.push(new KafkaClientResponseWrapper(
+                    leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
                             new BaseResponse(
                                     kafkaClientRequest.getClientRequestId(),
                                     kafkaClientRequest.getRequestType(),
@@ -211,20 +313,18 @@ public class LeaderController {
                 // configuration of consumer group
                 //
 
-                clientResponseProcessor.push(new KafkaClientResponseWrapper(
-                        new BaseResponse(
+                leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
+                        new ProducerConfigResponse(
                                 kafkaClientRequest.getClientRequestId(),
-                                kafkaClientRequest.getRequestType(),
-                                KafkaClientResponse.ResponseType.SUCCESS,
-                                "producer configured"
+                                replica.getTopic(producerConfigRequest.getTopicName())
                         ),leaderClient),false);
 
             }case CONSUMER_CONFIG -> {
                 final ConsumerConfigRequest consumerConfigRequest = (ConsumerConfigRequest) kafkaClientRequest;
                 // topic and partition validation
-                if (!topicMapper.has(consumerConfigRequest.getTopicName())){
+                if (!replica.hasTopic(consumerConfigRequest.getTopicName())){
                     // throw topic does not exists response
-                    clientResponseProcessor.push(new KafkaClientResponseWrapper(
+                    leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
                             new BaseResponse(
                                     kafkaClientRequest.getClientRequestId(),
                                     kafkaClientRequest.getRequestType(),
@@ -236,13 +336,10 @@ public class LeaderController {
 
                 // configuration of consumer group
                 //
-
-                clientResponseProcessor.push(new KafkaClientResponseWrapper(
-                        new BaseResponse(
+                leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
+                        new ConsumerConfigResponse(
                                 kafkaClientRequest.getClientRequestId(),
-                                kafkaClientRequest.getRequestType(),
-                                KafkaClientResponse.ResponseType.SUCCESS,
-                                "consumer configured"
+                                replica.getTopic(consumerConfigRequest.getTopicName())
                         ),leaderClient),false);
             }default -> {
                 // do nothing
@@ -252,19 +349,32 @@ public class LeaderController {
     }
 
     public void requestToDataNode(Transaction transaction) throws IOException {
-        System.out.println("[LEADER-> NODE] "+transaction);
+//        System.out.println("[LEADER-> NODE] "+transaction);
 
         if (transaction.getAction()== TransactionType.Action.REGISTER){
             final RequestTransaction requestTransaction = (RequestTransaction) transaction;
             transactionManager.registerTransaction(requestTransaction);
 
             for (Node partitionNode : requestTransaction.getPartitionNodes()) {
-                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(requestTransaction));
+//                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(requestTransaction));
                 // manage the 3-phase transaction status
+                final LeaderClient leaderClient = nodeClientMapper.getLeaderClient(partitionNode);
+                if (leaderClient!=null) leaderClientRRProcessor.push(new KafkaTransactionWrapper(requestTransaction, leaderClient),false);
+                else {
+                    // TODO: handle if node is not alive at moment
+                    transactionManager.updateTransaction3PhaseStatus(transaction.getTransactionId(),partitionNode,ThreePhaseTransactionStatus.ACK);
+                }
             }
+            if (transactionManager.readyToCommit(transaction.getTransactionId())){
+                transactionRequestProcessor.push(new CommitRequestTransaction(transaction.getTransactionId()),false);
+                requestToReplica(null,(RequestTransaction) transactionManager.getTransaction(transaction.getTransactionId()));
+            }
+
         }else if (transaction.getAction()== TransactionType.Action.COMMIT){
             for (Node partitionNode : transactionManager.getPartitionNodes(transaction.getTransactionId())) {
-                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(transaction));
+                final LeaderClient leaderClient = nodeClientMapper.getLeaderClient(partitionNode);
+                if (leaderClient!=null) leaderClientRRProcessor.push(new KafkaTransactionWrapper(transaction, leaderClient),false);
+//                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(transaction));
             }
             // response back to client
             final KafkaClientRequestWrapper kafkaClientRequestWrapper = transactionClientMapper.get(transaction.getTransactionId());
@@ -272,25 +382,42 @@ public class LeaderController {
             if (kafkaClientRequestWrapper.getRequestType()!= KafkaClientRequest.RequestType.CONSUMER_RECORD_READ) {
                 transactionManager.deleteTransaction(transaction.getTransactionId());
 
-                clientResponseProcessor.push(new KafkaClientResponseWrapper(
+                leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
                         new BaseResponse(
                                 kafkaClientRequestWrapper.getClientRequestId(),
                                 kafkaClientRequestWrapper.getRequestType(),
                                 KafkaClientResponse.ResponseType.SUCCESS,
-                                "Created topic"
+                                switch (kafkaClientRequestWrapper.getRequestType()){
+                                    case CONSUMER_OFFSET_COMMIT->"offset committed";
+                                    case TOPIC_CREATE -> " topic created";
+                                    case TOPIC_DELETE -> " topic deleted";
+                                    case PRODUCER_RECORD_WRITE -> "producer record written";
+                                    default -> "success";
+                                }
                         ), kafkaClientRequestWrapper.getLeaderClient()
                 ),false);
+
+//                clientResponseProcessor.push(new KafkaClientResponseWrapper(
+//                        new BaseResponse(
+//                                kafkaClientRequestWrapper.getClientRequestId(),
+//                                kafkaClientRequestWrapper.getRequestType(),
+//                                KafkaClientResponse.ResponseType.SUCCESS,
+//                                "Created topic"
+//                        ), kafkaClientRequestWrapper.getLeaderClient()
+//                ),false);
             }
 
         }else if (transaction.getAction()== TransactionType.Action.ABORT){
             for (Node partitionNode : transactionManager.getPartitionNodes(transaction.getTransactionId())) {
-                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(transaction));
+//                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(transaction));
+                final LeaderClient leaderClient = nodeClientMapper.getLeaderClient(partitionNode);
+                if (leaderClient!=null)leaderClientRRProcessor.push(new KafkaTransactionWrapper(transaction, leaderClient),false);
             }
 
             // response back to client
             final KafkaClientRequestWrapper kafkaClientRequestWrapper = transactionClientMapper.get(transaction.getTransactionId());
 
-            clientResponseProcessor.push(new KafkaClientResponseWrapper(
+            leaderClientRRProcessor.push(new KafkaClientResponseWrapper(
                     new BaseResponse(
                             kafkaClientRequestWrapper.getClientRequestId(),
                             kafkaClientRequestWrapper.getRequestType(),
@@ -298,12 +425,36 @@ public class LeaderController {
                             "Fail"
                     ), kafkaClientRequestWrapper.getLeaderClient()
             ),false);
+
+//            clientResponseProcessor.push(new KafkaClientResponseWrapper(
+//                    new BaseResponse(
+//                            kafkaClientRequestWrapper.getClientRequestId(),
+//                            kafkaClientRequestWrapper.getRequestType(),
+//                            KafkaClientResponse.ResponseType.FAIL,
+//                            "Fail"
+//                    ), kafkaClientRequestWrapper.getLeaderClient()
+//            ),false);
+
             transactionManager.deleteTransaction(transaction.getTransactionId());
         }
     }
 
-    public void requestToReplica(){
+    public void requestToAllReplica(RBaseTransaction rBaseTransaction){
+        nodeClientMapper.getAllNodes().forEach((node,leaderClient)->{
+                leaderClientRRProcessor.push(new KafkaRTransactionWrapper(rBaseTransaction,leaderClient),false);
+        });
+    }
 
+    public void requestToReplica(LeaderClient leaderClient,RequestTransaction requestTransaction){
+        if (requestTransaction.getRequestType()== TransactionType.RequestType.TOPIC_PARTITION_CREATE){
+            final RBaseTransaction rTransaction = new RBaseTransaction(TransactionIdGenerator.getrTransactionId(), RTransaction.RTransactionType.SYNC, RTransaction.RRequestType.CREATE_TOPIC, requestTransaction.getTopic());
+            requestToAllReplica(rTransaction);
+//            leaderClientRRProcessor.push(new KafkaRTransactionWrapper(rTransaction,leaderClient),false);
+        }else if (requestTransaction.getRequestType()== TransactionType.RequestType.TOPIC_PARTITION_DELETE){
+            final RBaseTransaction rTransaction = new RBaseTransaction(TransactionIdGenerator.getrTransactionId(), RTransaction.RTransactionType.SYNC, RTransaction.RRequestType.DELETE_TOPIC, requestTransaction.getTopic());
+            requestToAllReplica(rTransaction);
+//            leaderClientRRProcessor.push(new KafkaRTransactionWrapper(rTransaction,leaderClient),false);
+        }
     }
 
     public void requestToClient(){
@@ -319,19 +470,45 @@ public class LeaderController {
     }
 
     public void responseToClient(LeaderClient leaderClient,KafkaClientResponse kafkaClientResponse) throws IOException {
-        System.out.println("[LEADER->CLIENT] "+kafkaClientResponse);
-        leaderClient.send(serializer.serialize(kafkaClientResponse));
+        if (leaderClient!=null) leaderClient.send(serializer.serialize(kafkaClientResponse));
+    }
+
+    public void transactionToNode(LeaderClient leaderClient,Transaction transaction) throws IOException {
+        leaderClient.send(serializer.serialize(transaction));
+    }
+
+    public void rTransactionToReplica(LeaderClient leaderClient,RTransaction rTransaction) throws IOException {
+        leaderClient.send(serializer.serialize(rTransaction));
     }
 
     public void addNode(LeaderClient leaderClient){
-        System.out.println("Adding the node to nodeMapper : "+leaderClient.getNode().getAddress());
+        System.out.println("[Leader Controller] new node  : "+leaderClient.getNode());
         nodeClientMapper.addNode(leaderClient.getNode(),leaderClient);
+    }
+
+    public void removeNode(LeaderClient leaderClient){
+        System.out.println("[Leader Controller] removing node : "+leaderClient.getNode());
+        nodeClientMapper.removeNode(leaderClient.getNode());
     }
 
     @Getter
     @AllArgsConstructor
     private static class KafkaClientResponseWrapper{
         private final KafkaClientResponse kafkaClientResponse;
+        private final LeaderClient leaderClient;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    private static class KafkaTransactionWrapper{
+        private final Transaction transaction;
+        private final LeaderClient leaderClient;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    private static class KafkaRTransactionWrapper{
+        private final RTransaction rTransaction;
         private final LeaderClient leaderClient;
     }
 
@@ -345,10 +522,18 @@ public class LeaderController {
 
     private static class TransactionIdGenerator{
         private static long transactionId=0;
+        private static long rTransactionId=0;
 
         public static long getTransactionId(){
             transactionId=transactionId+1;
             return transactionId;
         }
+
+        public static long getrTransactionId(){
+            rTransactionId=rTransactionId+1;
+            return rTransactionId;
+        }
+
+
     }
 }

@@ -16,7 +16,7 @@ public class BrokerConfig {
         return brokerConfig;
     }
 
-    private final String DATA_PATH="data/";
+    private final String DATA_PATH="log/data/";
     private final String SEGMENT_FILE_NAME="segment.txt";
     private final String TOPIC_METADATA_FILE_NAME="topicMetaData.txt";
 

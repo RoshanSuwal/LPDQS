@@ -3,6 +3,7 @@ package org.ekbana.server.client;
 import com.google.gson.Gson;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
 
 import java.io.IOException;
@@ -11,7 +12,7 @@ import java.nio.channels.SocketChannel;
 
 @AllArgsConstructor
 @Getter
-public class KafkaClient {
+public class KafkaClient implements KafkaServer.KafkaServerClient {
     private final SocketChannel socketChannel;
     private KafkaClientState kafkaClientState;
 

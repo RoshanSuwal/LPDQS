@@ -4,9 +4,8 @@ import org.ekbana.server.common.Router;
 import org.ekbana.server.common.cm.request.KafkaClientRequest;
 import org.ekbana.server.common.cm.response.BaseResponse;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
-import org.ekbana.server.common.l.FollowerMode;
-import org.ekbana.server.common.l.LRequest;
-import org.ekbana.server.common.l.LResponse;
+import org.ekbana.server.common.l.*;
+import org.ekbana.server.common.lr.RTransaction;
 import org.ekbana.server.common.mb.Transaction;
 import org.ekbana.server.leader.KafkaServerConfig;
 import org.ekbana.server.util.Deserializer;
@@ -26,6 +25,7 @@ public class FollowerController {
     private final Router.KafkaFollowerRouter kafkaFollowerRouter;
 
     private final QueueProcessor<Object> requestQueueProcessor;
+    private final Follower follower;
 
     public FollowerController(KafkaServerConfig kafkaServerConfig,Follower follower, Serializer serializer, Deserializer deserializer, Router.KafkaFollowerRouter kafkaFollowerRouter, ExecutorService executorService) {
         this.serializer = serializer;
@@ -33,13 +33,17 @@ public class FollowerController {
         this.kafkaFollowerRouter = kafkaFollowerRouter;
         this.kafkaServerConfig = kafkaServerConfig;
         this.executorService = executorService;
+        this.follower=follower;
 
         Listener<byte[]> followerClientReadListener = this::rawData;
         follower.registerListener(followerClientReadListener);
 
         QueueProcessor.QueueProcessorListener<Object> objectQueueProcessorListener = o -> {
             try {
-                follower.write(serializer.serialize(o));
+                if (follower.getFollowerState()== Follower.FollowerState.AUTHENTICATED || o instanceof LFRequest) {
+                    log("leader",o);
+                    follower.write(serializer.serialize(o));
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -48,52 +52,81 @@ public class FollowerController {
         this.requestQueueProcessor = new QueueProcessor<>(100, objectQueueProcessorListener,executorService);
     }
 
+    private void log(String fromTo,Object obj){
+        System.out.println("[Follower] ["+fromTo+"] "+obj);
+    }
+
     public void registerRequest(KafkaClientRequest kafkaClientRequest){
-        System.out.println("[FOLLOWER CONTROLLER][KAFKA CLIENT REQUEST] "+kafkaClientRequest);
+        log("client",kafkaClientRequest);
         // some rules
-        if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.AUTH){
-            processKafkaClientResponse(new BaseResponse(kafkaClientRequest.getClientRequestId(),kafkaClientRequest.getRequestType(), KafkaClientResponse.ResponseType.SUCCESS,"Authenticated successfully"));
-        }else if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.NEW_CONNECTION){
+        if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.NEW_CONNECTION){
             processKafkaClientResponse(new BaseResponse(kafkaClientRequest.getClientRequestId(),kafkaClientRequest.getRequestType(), KafkaClientResponse.ResponseType.SUCCESS,"Connected successfully"));
+        }else if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.AUTH){
+            // authentication logic
+            processKafkaClientResponse(new BaseResponse(kafkaClientRequest.getClientRequestId(),kafkaClientRequest.getRequestType(), KafkaClientResponse.ResponseType.SUCCESS,"Authenticated successfully"));
         }else if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.INVALID){
             processKafkaClientResponse(new BaseResponse(kafkaClientRequest.getClientRequestId(),kafkaClientRequest.getRequestType(), KafkaClientResponse.ResponseType.FAIL,"invalid request"));
         }else if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.NON_PARSABLE){
             processKafkaClientResponse(new BaseResponse(kafkaClientRequest.getClientRequestId(),kafkaClientRequest.getRequestType(), KafkaClientResponse.ResponseType.FAIL,"Non Parsable request"));
         }else {
-            requestQueueProcessor.push(kafkaClientRequest, false);
+//            requestQueueProcessor.push(kafkaClientRequest, false);
             requestQueueProcessor.push(new LRequest(FollowerMode.MODE_CLIENT,kafkaClientRequest),false);
         }
     }
 
     public void registerTransaction(Transaction transaction){
 //        requestQueueProcessor.push(transaction,false);
-        System.out.println("[FOLLOWER CONTROLLER][BROKER RESPONSE] "+transaction);
+        log("broker",transaction);
         requestQueueProcessor.push(new LResponse(FollowerMode.MODE_DATA,transaction),false);
     }
 
+    public void registerRTransaction(RTransaction rTransaction){
+        log("replica",rTransaction);
+        requestQueueProcessor.push(new LResponse(FollowerMode.MODE_REPLICA,rTransaction),false);
+    }
+
     public void rawData(byte[] bytes){
-        System.out.println("[raw data] "+new String(bytes));
+//        System.out.println("[raw data] "+new String(bytes));
         try {
             final Object deserialized = deserializer.deserialize(bytes);
-            if (deserialized instanceof KafkaClientResponse){
+            log("leader",deserialized);
+            if (deserialized instanceof LFResponse){
+                processLFResponse((LFResponse) deserialized);
+            }else if (deserialized instanceof KafkaClientResponse){
                 processKafkaClientResponse((KafkaClientResponse) deserialized);
             }else if (deserialized instanceof Transaction){
                 processTransaction((Transaction) deserialized);
+            }else if (deserialized instanceof RTransaction){
+                processRTransaction((RTransaction) deserialized);
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
+    private void processLFResponse(LFResponse lfResponse){
+        if (lfResponse.getLfResponseType()== LFResponse.LFResponseType.CONNECTED){
+            follower.setFollowerState(Follower.FollowerState.CONNECTED);
+            requestQueueProcessor.push(new LFRequest(kafkaServerConfig.getNodeId(), kafkaServerConfig.getUserName(), kafkaServerConfig.getPassword(), LFRequest.LFRequestType.AUTH),true);
+        }else if (lfResponse.getLfResponseType()== LFResponse.LFResponseType.AUTHENTICATED){
+            follower.setFollowerState(Follower.FollowerState.AUTHENTICATED);
+        }else if (lfResponse.getLfResponseType()== LFResponse.LFResponseType.UNAUTHENTICATED){
+            follower.setFollowerState(Follower.FollowerState.CLOSE);
+            follower.close();
+        }
+    }
+
     public void processKafkaClientResponse(KafkaClientResponse kafkaClientResponse){
-        System.out.println("[FOLLOWER CONTROLLER][KAFKA CLIENT RESPONSE] "+kafkaClientResponse);
         kafkaFollowerRouter.routeFromFollowerToClient(kafkaClientResponse);
     }
 
     public void processTransaction(Transaction transaction){
         // deals with broker
-        System.out.println("[FOLLOWER CONTROLLER][BROKER REQUEST] "+transaction);
         kafkaFollowerRouter.routeFromFollowerToBroker(transaction);
+    }
+
+    public void processRTransaction(RTransaction rTransaction){
+        kafkaFollowerRouter.routeFromFollowerToReplica(rTransaction);
     }
 
     public interface Listener<T>{

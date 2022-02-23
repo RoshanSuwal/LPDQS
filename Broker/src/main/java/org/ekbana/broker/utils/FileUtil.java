@@ -14,11 +14,18 @@ import java.util.stream.Stream;
 
 public class FileUtil {
     /*get the list of all the files present in given folder*/
-    public static Stream<File> getFiles(String directory) throws IOException {
+    public static Stream<File> getDirectories(String directory) throws IOException {
         return Stream.of(Objects.requireNonNull(new File(directory).listFiles())).filter(File::isDirectory);
 //        Path path=Path.of(directory);
 //        return Files.walk(path,1);
     }
+
+    public static Stream<File> getFiles(String directory) throws IOException {
+        return Stream.of(Objects.requireNonNull(new File(directory).listFiles())).filter(File::isFile);
+//        Path path=Path.of(directory);
+//        return Files.walk(path,1);
+    }
+
 
     /* get the file name with max file name*/
     public long getFolderSize(String directory){
@@ -48,6 +55,14 @@ public class FileUtil {
     public static void deleteDirectory(String directory){
         try {
             FileUtils.deleteDirectory(new File(directory));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void deleteFile(String file){
+        try {
+            FileUtils.delete(new File(file));
         } catch (IOException e) {
             e.printStackTrace();
         }

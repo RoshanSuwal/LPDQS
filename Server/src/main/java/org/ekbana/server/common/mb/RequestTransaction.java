@@ -1,9 +1,11 @@
 package org.ekbana.server.common.mb;
 
 import lombok.Getter;
+import lombok.ToString;
 import org.ekbana.server.leader.Node;
 
 @Getter
+@ToString
 public abstract class RequestTransaction extends Transaction {
 
     private final Topic topic;

@@ -12,4 +12,7 @@ Server/src/main/java/org/ekbana/server/controller
 Server/src/main/java/org/ekbana/server/entity
 Server/src/main/java/org/ekbana/server/transaction
 Server/src/main/java/org/ekbana/server/MiniKafka.java
+log
+log2
+
 
