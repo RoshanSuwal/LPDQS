@@ -14,10 +14,11 @@ public class Leaf {
     }
 
     public SegmentMetaData search(long offset, boolean isTimeStamp) {
-        if (!isTimeStamp)
-            return  offset >= segmentMetaData.getStartingOffset() && offset <= segmentMetaData.getCurrentOffset() ? segmentMetaData : null;
-        else
-            return offset >= segmentMetaData.getStartingTimeStamp() && offset <= segmentMetaData.getCurrentTimeStamp() ? segmentMetaData : null;
+        return segmentMetaData;
+//        if (!isTimeStamp)
+//            return  offset >= segmentMetaData.getStartingOffset() && offset <= segmentMetaData.getCurrentOffset() ? segmentMetaData : null;
+//        else
+//            return offset >= segmentMetaData.getStartingTimeStamp() && offset <= segmentMetaData.getCurrentTimeStamp() ? segmentMetaData : null;
     }
 
     public void print() {

@@ -126,6 +126,7 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
             offset=segmentMetaData.getStartingOffset();
         }
 
+        offset=Math.max(offset,segmentMetaData.getStartingOffset());
         while (offset<=segmentMetaData.getCurrentOffset() && consumerRecordBatchPolicy.validate(records)){
             records.addRecord(storage.get(offset));
             offset=offset+1;

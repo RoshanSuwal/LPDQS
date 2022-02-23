@@ -35,13 +35,13 @@ public class SegmentSearchTree {
     }
 
     public SegmentMetaData searchSegment(long searchValue,boolean isTimeStamp){
-        if (segmentRetentionPolicy!=null)segmentRetentionPolicy.setCompareWith(Instant.now().getEpochSecond());
+        if (segmentRetentionPolicy!=null)segmentRetentionPolicy.setCompareWith(Instant.now().toEpochMilli());
         return rootNode.search(searchValue,isTimeStamp,segmentRetentionPolicy);
     }
 
     public void reEvaluate(){
         if (segmentRetentionPolicy!=null) {
-            segmentRetentionPolicy.setCompareWith(Instant.now().getEpochSecond());
+            segmentRetentionPolicy.setCompareWith(Instant.now().toEpochMilli());
             rootNode.reEvaluate(segmentRetentionPolicy);
         }
     }

@@ -78,8 +78,16 @@ public class KafkaBrokerController {
                 }
             }case CONSUMER_RECORD_READ -> {
                 final ConsumerRecordReadRequestTransaction consumerRecordReadRequestTransaction = (ConsumerRecordReadRequestTransaction) requestTransaction;
-//                broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(),consumerRecordReadRequestTransaction.getPartition())
-//                        .getRecords(consumerRecordReadRequestTransaction.getOffset(),consumerRecordReadRequestTransaction.isTimeOffset());
+                final Records records = broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(), consumerRecordReadRequestTransaction.getPartition())
+                        .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
+
+                final ConsumerRecords consumerRecords = new ConsumerRecords(records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
+                System.out.println(consumerRecords);
+                response(new ConsumerRecordReadResponseTransaction(
+                        consumerRecordReadRequestTransaction.getTransactionId(),
+                        TransactionType.Action.SUCCESS,
+                        consumerRecords
+                ));
             }case PRODUCER_RECORD_WRITE -> {
                 final ProducerRecordWriteRequestTransaction producerRecordWriteRequestTransaction=(ProducerRecordWriteRequestTransaction)requestTransaction;
                 producerRecordWriteRequestTransaction.getProducerRecords().forEach(System.out::println);

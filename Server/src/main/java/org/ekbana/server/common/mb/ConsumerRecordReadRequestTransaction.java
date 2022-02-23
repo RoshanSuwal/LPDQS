@@ -9,8 +9,11 @@ public class ConsumerRecordReadRequestTransaction extends RequestTransaction {
     private long offset;
     private boolean isTimeOffset;
 
-    public ConsumerRecordReadRequestTransaction(long transactionId, TransactionType.Action transactionType, Topic topic, TransactionType.RequestType requestType) {
+    public ConsumerRecordReadRequestTransaction(long transactionId, TransactionType.Action transactionType, Topic topic, TransactionType.RequestType requestType,int partition,long offset,boolean isTimeOffset) {
         super(transactionId, transactionType, topic, requestType);
+        this.partition=partition;
+        this.offset=offset;
+        this.isTimeOffset=isTimeOffset;
     }
 
     @Override

@@ -32,7 +32,7 @@ public class BrokerConfig {
     }
 
     public SegmentRetentionPolicy retentionPolicy(){
-//        return new SegmentRetentionPolicy();
-        return null;
+        return new SegmentRetentionPolicy();
+//        return null;
     }
 }

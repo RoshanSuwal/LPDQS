@@ -38,7 +38,7 @@ public class InternalNode {
 
     public SegmentMetaData search(long offset, boolean isTimeStamp, SegmentRetentionPolicy policy) {
         int i=0;
-        while (nodes.size()>0){
+        while (nodes.size()>i){
             if (nodes.get(i).getStatus().getPlain() && policy!=null && !policy.validate(nodes.get(i))){
                 nodes.get(i).setStatus(false);
 //                nodes.remove(i);

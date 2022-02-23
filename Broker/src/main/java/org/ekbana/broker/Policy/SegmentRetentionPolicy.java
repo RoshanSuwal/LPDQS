@@ -3,7 +3,7 @@ package org.ekbana.broker.Policy;
 import org.ekbana.broker.segment.search.Node;
 
 public class SegmentRetentionPolicy implements Policy<Node> {
-    private final long criteria=5;
+    private final long criteria=60*1000;
     private long compareWith=0;
 
     public void setCompareWith(long compareWith){

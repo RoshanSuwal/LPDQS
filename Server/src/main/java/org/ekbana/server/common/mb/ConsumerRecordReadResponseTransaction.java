@@ -1,10 +1,15 @@
 package org.ekbana.server.common.mb;
 
-public class ConsumerRecordReadResponseTransaction extends BaseResponseTransaction{
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter @Setter
+public class ConsumerRecordReadResponseTransaction extends Transaction{
 
     private ConsumerRecords consumerRecords;
 
-    public ConsumerRecordReadResponseTransaction(long transactionId, TransactionType.Action action) {
+    public ConsumerRecordReadResponseTransaction(long transactionId, TransactionType.Action action,ConsumerRecords consumerRecords) {
         super(transactionId, action);
+        this.consumerRecords=consumerRecords;
     }
 }

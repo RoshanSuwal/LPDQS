@@ -10,6 +10,7 @@ public class KafkaClientProcessor {
     public KafkaClientRequest processRequest(KafkaClient kafkaClient,KafkaClientRequest kafkaClientRequest){
         // kafka client state management
 
+        System.out.println("[Client] ["+ kafkaClient.getKafkaClientState()+"] "+kafkaClientRequest.getRequestType());
         if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.NON_PARSABLE){
             return kafkaClientRequest;
         }else if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.CLOSE_CLIENT){
@@ -44,7 +45,7 @@ public class KafkaClientProcessor {
                     return new InvalidRequest(kafkaClientRequest.getClientRequestId(), "expecting record write request");
                 }
             }case CONFIGURED_CONSUMER -> {
-                if (kafkaClientRequest.getRequestType()!= KafkaClientRequest.RequestType.CONSUMER_RECORD_READ ||
+                if (kafkaClientRequest.getRequestType()!= KafkaClientRequest.RequestType.CONSUMER_RECORD_READ &&
                     kafkaClientRequest.getRequestType()!=KafkaClientRequest.RequestType.CONSUMER_OFFSET_COMMIT){
                     return new InvalidRequest(kafkaClientRequest.getClientRequestId(), "expecting consumer read request or offset commit request");
                 }
