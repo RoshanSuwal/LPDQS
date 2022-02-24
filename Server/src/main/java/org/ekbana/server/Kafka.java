@@ -34,7 +34,7 @@ public class Kafka {
 
     private final Broker broker=new Broker();
     private final Mapper<Long, RequestTransaction> brokerTransactionMapper=new Mapper<>();
-    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(broker,executorService,kafkaRouter,brokerTransactionMapper);
+    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(kafkaServerConfig,broker,executorService,kafkaRouter,brokerTransactionMapper);
 
     private final KafkaClientConfig kafkaClientConfig=new KafkaClientConfig();
     private final KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();
@@ -46,13 +46,12 @@ public class Kafka {
 
     private final FollowerController kafkaFollowerController=new FollowerController(kafkaServerConfig,follower,serializer,deserializer,kafkaRouter,executorService);
 
-    private final NodeClientMapper nodeClientMapper=new NodeClientMapper();
     private final TransactionManager transactionManager=new TransactionManager(new Mapper<>());
     private final Mapper<String, Topic> topicMapper=new Mapper<>();
 
     private final ReplicaController replicaController=new ReplicaController(kafkaServerConfig,new Mapper<>(),new Mapper<>(),new Mapper<>(),kafkaRouter);
 
-    private final LeaderController leaderController=new LeaderController(kafkaServerConfig, deserializer, serializer, nodeClientMapper, transactionManager, replicaController,executorService);
+    private final LeaderController leaderController=new LeaderController(kafkaServerConfig, deserializer, serializer, new Mapper<>(), transactionManager, replicaController,executorService);
 
     private final LeaderServer leaderServer=new LeaderServer(kafkaServerConfig,leaderController);
 

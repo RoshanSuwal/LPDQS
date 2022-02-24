@@ -1,6 +1,7 @@
 package org.ekbana.server.leader;
 
 import lombok.RequiredArgsConstructor;
+import org.ekbana.server.cluster.Node;
 import org.ekbana.server.common.mb.RequestTransaction;
 import org.ekbana.server.common.mb.Transaction;
 import org.ekbana.server.util.Mapper;
@@ -30,7 +31,10 @@ public class TransactionManager {
     }
 
     public void updateTransaction3PhaseStatus(long transactionId,Node node,ThreePhaseTransactionStatus status){
+        System.out.println("updating 3 phase commit "+ transactionId+" "+node.getId());
         transactionHelperMapper.get(transactionId).setThreePhaseTransactionStatuses(node,status);
+
+        System.out.println(transactionHelperMapper.get(transactionId));
     }
 
     public boolean readyToCommit(long transactionId){

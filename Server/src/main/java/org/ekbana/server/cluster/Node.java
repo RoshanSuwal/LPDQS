@@ -2,17 +2,28 @@ package org.ekbana.server.cluster;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.ToString;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 @Getter
-@Setter
 @AllArgsConstructor
+@ToString
 public class Node implements Serializable {
-    private String address;
+    private final String id;
+    private final String address;
 
-    public boolean equals(Node node) {
-        return node.getAddress().equals(address);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Node node = (Node) o;
+        return Objects.equals(address, node.address);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(address);
     }
 }

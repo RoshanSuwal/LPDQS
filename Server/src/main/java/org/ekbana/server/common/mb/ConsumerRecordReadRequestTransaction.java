@@ -1,7 +1,7 @@
 package org.ekbana.server.common.mb;
 
 import lombok.Getter;
-import org.ekbana.server.leader.Node;
+import org.ekbana.server.cluster.Node;
 
 @Getter
 public class ConsumerRecordReadRequestTransaction extends RequestTransaction {

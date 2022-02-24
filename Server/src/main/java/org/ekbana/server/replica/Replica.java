@@ -1,7 +1,7 @@
 package org.ekbana.server.replica;
 
+import org.ekbana.server.common.mb.ConsumerGroup;
 import org.ekbana.server.common.mb.Topic;
-import org.ekbana.server.topic.ConsumerGroup;
 
 
 public interface Replica {

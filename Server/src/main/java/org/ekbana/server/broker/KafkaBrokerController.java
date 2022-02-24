@@ -3,8 +3,11 @@ package org.ekbana.server.broker;
 import org.ekbana.broker.Broker;
 import org.ekbana.broker.record.Record;
 import org.ekbana.broker.record.Records;
+import org.ekbana.server.cluster.Node;
 import org.ekbana.server.common.Router;
 import org.ekbana.server.common.mb.*;
+import org.ekbana.server.leader.KafkaServerConfig;
+import org.ekbana.server.util.Helper;
 import org.ekbana.server.util.Mapper;
 import org.ekbana.server.util.QueueProcessor;
 
@@ -13,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 public class KafkaBrokerController {
+    private final KafkaServerConfig kafkaServerConfig;
     private final Broker broker;
     private final ExecutorService executorService;
     private final Router.KafkaBrokerRouter kafkaBrokerRouter;
@@ -21,7 +25,8 @@ public class KafkaBrokerController {
 
     private final QueueProcessor<Transaction> transactionQueueProcessor;
 
-    public KafkaBrokerController(Broker broker, ExecutorService executorService, Router.KafkaBrokerRouter kafkaBrokerRouter, Mapper<Long, RequestTransaction> brokerTransactionMapper) {
+    public KafkaBrokerController(KafkaServerConfig kafkaServerConfig,Broker broker, ExecutorService executorService, Router.KafkaBrokerRouter kafkaBrokerRouter, Mapper<Long, RequestTransaction> brokerTransactionMapper) {
+        this.kafkaServerConfig=kafkaServerConfig;
         this.broker = broker;
         this.executorService = executorService;
         this.kafkaBrokerRouter = kafkaBrokerRouter;
@@ -68,20 +73,33 @@ public class KafkaBrokerController {
         switch (requestTransaction.getRequestType()){
             case TOPIC_PARTITION_CREATE ->{
                 final TopicCreateRequestTransaction topicCreateRequestTransaction = (TopicCreateRequestTransaction) requestTransaction;
-                for (int partition : topicCreateRequestTransaction.getPartitions()) {
-                    broker.createTopic(topicCreateRequestTransaction.getTopic().getTopicName(),partition);
-                }
+
+                Helper.mapArray(topicCreateRequestTransaction.getPartitionNodes(),(i,node)->{
+                    if (((Node)node).getId().equals(kafkaServerConfig.getNodeId())){
+                        broker.createTopic(topicCreateRequestTransaction.getTopic().getTopicName(),i);
+                    }
+                });
+
+//                for (int partition : topicCreateRequestTransaction.getPartitions()) {
+//                    broker.createTopic(topicCreateRequestTransaction.getTopic().getTopicName(),partition);
+//                }
             }case TOPIC_PARTITION_DELETE -> {
                 final TopicDeleteRequestTransaction topicDeleteRequestTransaction = (TopicDeleteRequestTransaction) requestTransaction;
-                for (int partition : topicDeleteRequestTransaction.getPartitions()) {
-                    broker.removeTopic(topicDeleteRequestTransaction.getTopic().getTopicName(),partition);
-                }
+
+                Helper.mapArray(topicDeleteRequestTransaction.getPartitionNodes(),(i,node)->{
+                    if (((Node)node).getId().equals(kafkaServerConfig.getNodeId())){
+                        broker.removeTopic(topicDeleteRequestTransaction.getTopic().getTopicName(),i);
+                    }
+                });
+//                for (int partition : topicDeleteRequestTransaction.getPartitions()) {
+//                    broker.removeTopic(topicDeleteRequestTransaction.getTopic().getTopicName(),partition);
+//                }
             }case CONSUMER_RECORD_READ -> {
                 final ConsumerRecordReadRequestTransaction consumerRecordReadRequestTransaction = (ConsumerRecordReadRequestTransaction) requestTransaction;
                 final Records records = broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(), consumerRecordReadRequestTransaction.getPartition())
                         .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
 
-                final ConsumerRecords consumerRecords = new ConsumerRecords(records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
+                final ConsumerRecords consumerRecords = new ConsumerRecords(consumerRecordReadRequestTransaction.getPartition(),records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
                 System.out.println(consumerRecords);
                 response(new ConsumerRecordReadResponseTransaction(
                         consumerRecordReadRequestTransaction.getTransactionId(),

@@ -1,5 +1,6 @@
 package org.ekbana.server.util;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +20,9 @@ public class Mapper<K,V> {
         return map.containsKey(k);
     }
     public Set<K> getKeys(){return map.keySet();}
+    public Collection<V> getValues(){return map.values();}
 
+    public int size(){return map.size();}
     public void forEach(IMapper<K,V> iMapper){
         map.forEach(iMapper::apply);
     }

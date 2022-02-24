@@ -3,14 +3,16 @@ package org.ekbana.server.Application;
 import org.ekbana.broker.Broker;
 import org.ekbana.server.broker.KafkaBrokerController;
 import org.ekbana.server.client.*;
-import org.ekbana.server.client.KafkaClient;
 import org.ekbana.server.common.KafkaRouter;
 import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.mb.RequestTransaction;
 import org.ekbana.server.common.mb.Topic;
 import org.ekbana.server.follower.Follower;
 import org.ekbana.server.follower.FollowerController;
-import org.ekbana.server.leader.*;
+import org.ekbana.server.leader.KafkaServerConfig;
+import org.ekbana.server.leader.LeaderController;
+import org.ekbana.server.leader.LeaderServer;
+import org.ekbana.server.leader.TransactionManager;
 import org.ekbana.server.replica.ReplicaController;
 import org.ekbana.server.util.Deserializer;
 import org.ekbana.server.util.Mapper;
@@ -30,7 +32,6 @@ public class LeaderApplication {
 
     private final KafkaServerConfig kafkaServerConfig=new KafkaServerConfig("log/","node-0");
 
-    private final NodeClientMapper nodeClientMapper=new NodeClientMapper();
     private final TransactionManager transactionManager=new TransactionManager(new Mapper<>());
     private final Mapper<String, Topic> topicMapper=new Mapper<>();
 
@@ -48,13 +49,13 @@ public class LeaderApplication {
 
     private final Broker broker=new Broker();
     private final Mapper<Long, RequestTransaction> brokerTransactionMapper=new Mapper<>();
-    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(broker,executorService,kafkaRouter,brokerTransactionMapper);
+    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(kafkaServerConfig,broker,executorService,kafkaRouter,brokerTransactionMapper);
 
     private final FollowerController kafkaFollowerController=new FollowerController(kafkaServerConfig,follower,serializer,deserializer,kafkaRouter,executorService);
 
     private final ReplicaController replicaController=new ReplicaController(kafkaServerConfig,new Mapper<>(),new Mapper<>(),new Mapper<>(),kafkaRouter);
 
-    private final LeaderController leaderController=new LeaderController(kafkaServerConfig, deserializer, serializer, nodeClientMapper, transactionManager, replicaController,executorService);
+    private final LeaderController leaderController=new LeaderController(kafkaServerConfig, deserializer, serializer, new Mapper<>(), transactionManager, replicaController,executorService);
 
     private final LeaderServer leaderServer=new LeaderServer(kafkaServerConfig,leaderController);
     private final KafkaServer kafkaServer=new KafkaServer();

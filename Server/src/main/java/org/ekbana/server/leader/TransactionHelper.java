@@ -1,9 +1,13 @@
 package org.ekbana.server.leader;
 
-import org.ekbana.server.common.mb.RequestTransaction;
+import lombok.Getter;
+import lombok.ToString;
+import org.ekbana.server.cluster.Node;
 
 import java.util.Arrays;
 
+@Getter
+@ToString
 public class TransactionHelper {
     private final Object obj;
     private final Node[] nodes;
@@ -31,7 +35,7 @@ public class TransactionHelper {
 
     public void setThreePhaseTransactionStatuses(Node node,ThreePhaseTransactionStatus threePhaseTransactionStatus){
         for (int i=0;i<nodes.length;i++){
-            if (node.equals(nodes[i]))
+            if (node.getId().equals(nodes[i].getId()))
                 threePhaseTransactionStatuses[i]=threePhaseTransactionStatus;
         }
     }

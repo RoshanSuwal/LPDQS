@@ -1,4 +1,4 @@
-package org.ekbana.server.util;
+package org.ekbana.server.config;
 
 import lombok.Getter;
 import org.ekbana.server.cluster.Node;
@@ -16,14 +16,14 @@ public class MiniKafkaConfig {
     private final String masterAddress="localhost";
 
     public Node[] getNodes(){
-        return (Node[]) Arrays.stream(nodes.split(",")).map(Node::new).toArray();
+        return (Node[]) Arrays.stream(nodes.split(",")).map(d->new Node(d,d)).toArray();
     }
 
     public Node getNode(){
-        return new Node(nodeAddress);
+        return new Node(nodeAddress,nodeAddress);
     }
 
     public Node getMasterNode(){
-        return new Node(masterAddress);
+        return new Node(masterAddress,masterAddress);
     }
 }

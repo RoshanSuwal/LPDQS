@@ -2,6 +2,8 @@ package org.ekbana.server.leader;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.ekbana.server.cluster.Cluster;
+import org.ekbana.server.cluster.Node;
 import org.ekbana.server.common.cm.request.*;
 import org.ekbana.server.common.cm.response.*;
 import org.ekbana.server.common.l.LFRequest;
@@ -18,14 +20,19 @@ import org.ekbana.server.util.QueueProcessor;
 import org.ekbana.server.util.Serializer;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class LeaderController {
+
+    private Cluster cluster=new Cluster();
 
     private final KafkaServerConfig kafkaServerConfig;
     private final Deserializer deserializer;
     private final Serializer serializer;
-    private final NodeClientMapper nodeClientMapper;
+//    private final NodeClientMapper nodeClientMapper;
+    private final Mapper<String,LeaderClient> nodeClientMapper;
     private final TransactionManager transactionManager;
 
     private final Mapper<Long, KafkaClientRequestWrapper> transactionClientMapper;
@@ -75,7 +82,7 @@ public class LeaderController {
         }
     };
 
-    public LeaderController(KafkaServerConfig kafkaServerConfig, Deserializer deserializer, Serializer serializer, NodeClientMapper nodeClientMapper, TransactionManager transactionManager, Replica replica, ExecutorService executorService) {
+    public LeaderController(KafkaServerConfig kafkaServerConfig, Deserializer deserializer, Serializer serializer, Mapper<String ,LeaderClient> nodeClientMapper, TransactionManager transactionManager, Replica replica, ExecutorService executorService) {
         this.kafkaServerConfig = kafkaServerConfig;
         this.deserializer = deserializer;
         this.serializer = serializer;
@@ -108,7 +115,7 @@ public class LeaderController {
     }
 
     public void print(Node node, Object obj) {
-        System.out.println("[Leader] [" + node.getAddress() + "] " + obj);
+        System.out.println("[Leader] [" + node.getId() + "] " + obj);
     }
 
     protected void processFollowerRequest(LeaderClient leaderClient, LFRequest lfRequest) {
@@ -127,7 +134,7 @@ public class LeaderController {
                 final LFResponse obj = new LFResponse(LFResponse.LFResponseType.AUTHENTICATED);
                 print(leaderClient.getNode(), obj);
                 leaderClient.send(serializer.serialize(obj));
-                leaderClient.setNode(new Node(lfRequest.getNodeId()));
+                leaderClient.setNode(new Node(lfRequest.getNodeId(),leaderClient.getNode().getAddress()));
                 addNode(leaderClient);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -156,7 +163,7 @@ public class LeaderController {
     }
 
     private void responseFromData(LeaderClient leaderClient, Transaction transaction) {
-        System.out.println("[Leader Controller] " + transaction);
+        System.out.println("[Leader Controller] ["+leaderClient.getNode() +"]" + transaction);
         if (transaction.getAction() == TransactionType.Action.ACKNOWLEDGE) {
             // send commit request
             if (transactionManager.hasTransaction(transaction.getTransactionId())) {
@@ -225,14 +232,14 @@ public class LeaderController {
                 if (replica.hasTopic(producerRecordWriteRequest.getTopicName())) {
                     // send to partition logic and get partition id
                     Topic topic = replica.getTopic(producerRecordWriteRequest.getTopicName());
-                    int partitionId = 0;
+//                    int partitionId = 0;
                     // Topology -> topic, key,partitionId, record_count
 
                     final ProducerRecordWriteRequestTransaction producerRecordWriteRequestTransaction = new ProducerRecordWriteRequestTransaction(
                             TransactionIdGenerator.getTransactionId(),
                             TransactionType.Action.REGISTER,
                             topic,
-                            partitionId,
+                            producerRecordWriteRequest.getPartitionId(),
                             producerRecordWriteRequest.getProducerRecords()
                     );
 
@@ -253,8 +260,8 @@ public class LeaderController {
             }
             case CONSUMER_RECORD_READ -> {
                 final ConsumerRecordReadRequest consumerRecordReadRequest = (ConsumerRecordReadRequest) kafkaClientRequest;
-                if (replica.hasTopic(consumerRecordReadRequest.getTopicNanme())) {
-                    final Topic topic = replica.getTopic(consumerRecordReadRequest.getTopicNanme());
+                if (replica.hasTopic(consumerRecordReadRequest.getTopicName())) {
+                    final Topic topic = replica.getTopic(consumerRecordReadRequest.getTopicName());
 
                     final ConsumerRecordReadRequestTransaction consumerRecordReadRequestTransaction = new ConsumerRecordReadRequestTransaction(
                             TransactionIdGenerator.getTransactionId(),
@@ -303,8 +310,8 @@ public class LeaderController {
                 // resource manager, number of partition
                 final Topic newTopic = Topic.builder()
                         .topicName(((TopicCreateRequest) kafkaClientRequest).getTopicName())
-                        .numberOfPartitions(1)
-                        .dataNode(new Node[]{nodeClientMapper.getAnyNode()})
+                        .numberOfPartitions(topicCreateRequest.getNumberOfPartitions())
+                        .dataNode(cluster.getNodes(topicCreateRequest.getNumberOfPartitions()))
                         .build();
                 // resource manager
                 // node manager
@@ -404,10 +411,11 @@ public class LeaderController {
             final RequestTransaction requestTransaction = (RequestTransaction) transaction;
             transactionManager.registerTransaction(requestTransaction);
 
-            for (Node partitionNode : requestTransaction.getPartitionNodes()) {
+            System.out.println(requestTransaction.getTopic());
+            for (Node partitionNode : Arrays.stream(requestTransaction.getPartitionNodes()).collect(Collectors.toSet())) {
 //                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(requestTransaction));
                 // manage the 3-phase transaction status
-                final LeaderClient leaderClient = nodeClientMapper.getLeaderClient(partitionNode);
+                final LeaderClient leaderClient = nodeClientMapper.get(partitionNode.getId());
                 if (leaderClient != null)
                     leaderClientRRProcessor.push(new KafkaTransactionWrapper(requestTransaction, leaderClient), false);
                 else {
@@ -421,8 +429,8 @@ public class LeaderController {
             }
 
         } else if (transaction.getAction() == TransactionType.Action.COMMIT) {
-            for (Node partitionNode : transactionManager.getPartitionNodes(transaction.getTransactionId())) {
-                final LeaderClient leaderClient = nodeClientMapper.getLeaderClient(partitionNode);
+            for (Node partitionNode : Arrays.stream(transactionManager.getPartitionNodes(transaction.getTransactionId())).collect(Collectors.toSet())) {
+                final LeaderClient leaderClient = nodeClientMapper.get(partitionNode.getId());
                 if (leaderClient != null)
                     leaderClientRRProcessor.push(new KafkaTransactionWrapper(transaction, leaderClient), false);
 //                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(transaction));
@@ -461,7 +469,7 @@ public class LeaderController {
         } else if (transaction.getAction() == TransactionType.Action.ABORT) {
             for (Node partitionNode : transactionManager.getPartitionNodes(transaction.getTransactionId())) {
 //                nodeClientMapper.getLeaderClient(partitionNode).send(serializer.serialize(transaction));
-                final LeaderClient leaderClient = nodeClientMapper.getLeaderClient(partitionNode);
+                final LeaderClient leaderClient = nodeClientMapper.get(partitionNode.getId());
                 if (leaderClient != null)
                     leaderClientRRProcessor.push(new KafkaTransactionWrapper(transaction, leaderClient), false);
             }
@@ -492,7 +500,7 @@ public class LeaderController {
     }
 
     public void requestToAllReplica(RBaseTransaction rBaseTransaction) {
-        nodeClientMapper.getAllNodes().forEach((node, leaderClient) -> {
+        nodeClientMapper.forEach((node, leaderClient) -> {
             leaderClientRRProcessor.push(new KafkaRTransactionWrapper(rBaseTransaction, leaderClient), false);
         });
     }
@@ -535,12 +543,14 @@ public class LeaderController {
 
     public void addNode(LeaderClient leaderClient) {
         System.out.println("[Leader Controller] new node  : " + leaderClient.getNode());
-        nodeClientMapper.addNode(leaderClient.getNode(), leaderClient);
+        nodeClientMapper.add(leaderClient.getNode().getId(), leaderClient);
+        cluster.addNode(leaderClient.getNode());
     }
 
     public void removeNode(LeaderClient leaderClient) {
         System.out.println("[Leader Controller] removing node : " + leaderClient.getNode());
-        nodeClientMapper.removeNode(leaderClient.getNode());
+        nodeClientMapper.delete(leaderClient.getNode().getId());
+        cluster.deleteNode(leaderClient.getNode());
     }
 
     @Getter

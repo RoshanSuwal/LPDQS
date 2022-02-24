@@ -79,24 +79,24 @@ public class KafkaClientApplication {
 
 
 //        Thread.sleep(20000);
-//        kafkaClient.write(new Gson().toJson(new TopicCreateRequest("tweet-19500",1)));
+        kafkaClient.write(new Gson().toJson(new TopicCreateRequest("tweets",2)));
 
 //        Thread.sleep(5000);
 //        kafkaClient.write(new Gson().toJson(new TopicDeleteRequest("tweet-19500")));
 
-        kafkaClient.write(new Gson().toJson(new ProducerConfigRequest("tweet-19500")));
-
-        List<String> records= Arrays.asList("hello","world","first record","second record");
-        final ProducerRecordWriteRequest producerRecordWriteRequest = new ProducerRecordWriteRequest();
-        producerRecordWriteRequest.setTopicName("tweet-19500");
-        producerRecordWriteRequest.setProducerRecords(records);
-
-//        kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
-
-        while (true){
-            kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
-            Thread.sleep(1000);
-        }
+//        kafkaClient.write(new Gson().toJson(new ProducerConfigRequest("tweet-19500")));
+//
+//        List<String> records= Arrays.asList("hello","world","first record","second record");
+//        final ProducerRecordWriteRequest producerRecordWriteRequest = new ProducerRecordWriteRequest();
+//        producerRecordWriteRequest.setTopicName("tweet-19500");
+//        producerRecordWriteRequest.setProducerRecords(records);
+//
+////        kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
+//
+//        while (true){
+//            kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
+//            Thread.sleep(1000);
+//        }
 
 //        final ConsumerConfigRequest consumerConfigRequest = new ConsumerConfigRequest("tweet-19500", "group-0", new int[]{0});
 //        kafkaClient.write(new Gson().toJson(consumerConfigRequest));

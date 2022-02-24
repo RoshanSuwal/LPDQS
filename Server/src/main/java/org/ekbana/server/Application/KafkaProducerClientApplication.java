@@ -19,17 +19,20 @@ public class KafkaProducerClientApplication {
 
         kafkaClientApplication.write(new Gson().toJson(new AuthRequest()));
 
-        kafkaClientApplication.write(new Gson().toJson(new ProducerConfigRequest("tweet-19500")));
+        kafkaClientApplication.write(new Gson().toJson(new ProducerConfigRequest("tweets")));
 
         List<String> records= Arrays.asList("hello","world","first record","second record");
         final ProducerRecordWriteRequest producerRecordWriteRequest = new ProducerRecordWriteRequest();
-        producerRecordWriteRequest.setTopicName("tweet-19500");
+        producerRecordWriteRequest.setTopicName("tweets");
         producerRecordWriteRequest.setProducerRecords(records);
 
 //        kafkaClient.write(new Gson().toJson(producerRecordWriteRequest));
 
+        int i=0;
         while (true){
+            producerRecordWriteRequest.setPartitionId(i%2);
             kafkaClientApplication.write(new Gson().toJson(producerRecordWriteRequest));
+            i++;
             Thread.sleep(1000);
         }
     }

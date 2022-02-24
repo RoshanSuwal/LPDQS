@@ -2,7 +2,7 @@ package org.ekbana.server.common.mb;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.ekbana.server.leader.Node;
+import org.ekbana.server.cluster.Node;
 
 @Getter
 @Setter
@@ -14,8 +14,9 @@ public class TopicCreateRequestTransaction extends RequestTransaction{
     }
 
     public int[] getPartitions(){
-        return new int[]{0};
+        return partitions;
     }
+
     @Override
     public Node[] getPartitionNodes() {
         return getTopic().getDataNode();

@@ -12,12 +12,14 @@ import java.util.List;
 @Setter
 @ToString
 public class ConsumerRecords implements Serializable {
+    private final int partitionId;
     private final int count;
     private final long startingOffset;
     private final long endingOffset;
     private final List<?> records;
 
-    public ConsumerRecords(int count, long startingOffset, long endingOffset, List<?> records) {
+    public ConsumerRecords(int partitionId,int count, long startingOffset, long endingOffset, List<?> records) {
+        this.partitionId=partitionId;
         this.count = count;
         this.startingOffset = startingOffset;
         this.endingOffset = endingOffset;

@@ -27,14 +27,14 @@ public class FollowerApplication {
     private final ExecutorService executorService= Executors.newFixedThreadPool(20);
 
 
-    private final KafkaServerConfig kafkaServerConfig=new KafkaServerConfig("log2/","node-2");
+    private final KafkaServerConfig kafkaServerConfig=new KafkaServerConfig("log2/","node-1");
     private final KafkaRouter kafkaRouter=new KafkaRouter();
 
     private final Follower follower=new Follower(kafkaServerConfig);
 
     private final Broker broker=new Broker();
     private final Mapper<Long, RequestTransaction> brokerTransactionMapper=new Mapper<>();
-    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(broker,executorService,kafkaRouter,brokerTransactionMapper);
+    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(kafkaServerConfig,broker,executorService,kafkaRouter,brokerTransactionMapper);
 
     private final KafkaClientConfig kafkaClientConfig=new KafkaClientConfig();
     private final KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();

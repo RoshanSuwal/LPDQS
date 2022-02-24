@@ -31,8 +31,10 @@ public class KafkaConsumerClientApplication {
 
     static KafkaClientApplication kafkaClient=new KafkaClientApplication("localhost",9999,kafkaHandler);
 
+    static int i=0;
     static void send(long offset) throws IOException, InterruptedException {
-        kafkaClient.write(new Gson().toJson(new ConsumerRecordReadRequest("tweet-19500", 0, offset, false)));
+        i=i+1;
+        kafkaClient.write(new Gson().toJson(new ConsumerRecordReadRequest("tweets", i%2, offset, false)));
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -42,7 +44,7 @@ public class KafkaConsumerClientApplication {
 
         kafkaClient.write(new Gson().toJson(new AuthRequest()));
 
-        final ConsumerConfigRequest consumerConfigRequest = new ConsumerConfigRequest("tweet-19500", "group-0", new int[]{0});
+        final ConsumerConfigRequest consumerConfigRequest = new ConsumerConfigRequest("tweets", "group-0", new int[]{0});
         kafkaClient.write(new Gson().toJson(consumerConfigRequest));
 
 //        Thread.sleep(200);
@@ -53,6 +55,7 @@ public class KafkaConsumerClientApplication {
         while (true) {
             Thread.sleep(1000);
             send(offset);
+//            break;
         }
     }
 }

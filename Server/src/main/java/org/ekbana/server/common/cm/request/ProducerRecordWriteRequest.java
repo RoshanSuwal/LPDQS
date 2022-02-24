@@ -11,7 +11,7 @@ public class ProducerRecordWriteRequest extends KafkaClientRequest {
 
     private String topicName;
     private String key;
-    private String partitionId;
+    private int partitionId;
 
     private List<?> producerRecords;
 

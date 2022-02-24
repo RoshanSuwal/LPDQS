@@ -6,9 +6,9 @@ import org.ekbana.broker.utils.FileUtil;
 import org.ekbana.server.common.Router;
 import org.ekbana.server.common.lr.RBaseTransaction;
 import org.ekbana.server.common.lr.RTransaction;
+import org.ekbana.server.common.mb.ConsumerGroup;
 import org.ekbana.server.common.mb.Topic;
 import org.ekbana.server.leader.KafkaServerConfig;
-import org.ekbana.server.topic.ConsumerGroup;
 import org.ekbana.server.util.Mapper;
 
 import java.io.IOException;
@@ -142,6 +142,7 @@ public class ReplicaController implements Replica {
     }
 
     @Override
+
     public ConsumerGroup getConsumerGroup(String topic, String groupName) {
         return null;
     }
