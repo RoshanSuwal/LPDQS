@@ -8,11 +8,13 @@ public class SegmentRetentionPolicy implements Policy<Node> {
 
     public void setCompareWith(long compareWith){
         this.compareWith=compareWith;
+//        System.out.println("policy "+ compareWith);
     }
 
     @Override
     public boolean validate(Node node) {
-        return compareWith-node.getCriteria()<criteria;
+//        System.out.println("comparing node "+ node);
+        return compareWith-node.getCriteria()<=criteria;
     }
     // timeStampBased Policy -- stores upto n-interval -- need to be defined
     // size based policy -- stores maximum of n-bytes -- reevaluation done only during creation of segment

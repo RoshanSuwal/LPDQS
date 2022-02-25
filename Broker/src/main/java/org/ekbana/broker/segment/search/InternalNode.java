@@ -43,12 +43,12 @@ public class InternalNode {
                 nodes.get(i).setStatus(false);
 //                nodes.remove(i);
 //                leaves.remove(i);
-            }else {
+            }else if (nodes.get(i).getStatus().getPlain()){
                 if (nodes.get(i).contain(offset,isTimeStamp)){
                     return leaves.get(i).search(offset,isTimeStamp);
                 }
-                i=i+1;
             }
+            i=i+1;
         }
         return leaves.size()==0
                 ?null

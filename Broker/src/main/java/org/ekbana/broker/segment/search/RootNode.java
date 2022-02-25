@@ -6,6 +6,7 @@ import org.ekbana.broker.segment.SegmentMetaData;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 public class RootNode {
@@ -44,8 +45,8 @@ public class RootNode {
                 if (nodes.get(i).contain(offset, isTimeStamp)) {
                     return internalNodes.get(i).search(offset, isTimeStamp, policy);
                 }
-                i = i + 1;
             }
+            i = i + 1;
         }
         return internalNode.search(offset, isTimeStamp, policy);
     }
@@ -79,24 +80,24 @@ public class RootNode {
     public static void main(String[] args) {
         RootNode rootNode = new RootNode(2);
         rootNode.addLeaf(
-                new Node(1,100),
+                new Node(1,100,new AtomicBoolean(true)),
                 new Leaf(SegmentMetaData.builder().startingOffset(1).currentOffset(10).startingTimeStamp(100).currentTimeStamp(200).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(10, Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(11).currentOffset(20).startingTimeStamp(201).currentTimeStamp(300).build()));
+        rootNode.addLeaf(new Node(10, Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(11).currentOffset(20).startingTimeStamp(201).currentTimeStamp(300).build()));
         sleep(2);
-        rootNode.addLeaf(new Node(20,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(21).currentOffset(30).startingTimeStamp(301).currentTimeStamp(400).build()));
+        rootNode.addLeaf(new Node(20,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(21).currentOffset(30).startingTimeStamp(301).currentTimeStamp(400).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(30,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(31).currentOffset(40).startingTimeStamp(401).currentTimeStamp(500).build()));
+        rootNode.addLeaf(new Node(30,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(31).currentOffset(40).startingTimeStamp(401).currentTimeStamp(500).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(40,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(41).currentOffset(50).startingTimeStamp(501).currentTimeStamp(600).build()));
+        rootNode.addLeaf(new Node(40,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(41).currentOffset(50).startingTimeStamp(501).currentTimeStamp(600).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(50,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(51).currentOffset(60).startingTimeStamp(601).currentTimeStamp(700).build()));
+        rootNode.addLeaf(new Node(50,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(51).currentOffset(60).startingTimeStamp(601).currentTimeStamp(700).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(60,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(61).currentOffset(70).startingTimeStamp(701).currentTimeStamp(800).build()));
+        rootNode.addLeaf(new Node(60,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(61).currentOffset(70).startingTimeStamp(701).currentTimeStamp(800).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(70,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(71).currentOffset(80).startingTimeStamp(801).currentTimeStamp(900).build()));
+        rootNode.addLeaf(new Node(70,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(71).currentOffset(80).startingTimeStamp(801).currentTimeStamp(900).build()));
         sleep(1);
-        rootNode.addLeaf(new Node(80,Instant.now().getEpochSecond()),new Leaf(SegmentMetaData.builder().startingOffset(81).currentOffset(90).startingTimeStamp(901).currentTimeStamp(1000).build()));
+        rootNode.addLeaf(new Node(80,Instant.now().getEpochSecond(),new AtomicBoolean(true)),new Leaf(SegmentMetaData.builder().startingOffset(81).currentOffset(90).startingTimeStamp(901).currentTimeStamp(1000).build()));
         rootNode.print();
         final SegmentRetentionPolicy policy = new SegmentRetentionPolicy();
         System.out.println("\n\n re evaluation \n");

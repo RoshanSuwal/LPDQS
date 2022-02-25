@@ -69,7 +69,7 @@ public class Application {
                 .forEach(System.out::println);
     }
 
-    public static void main(String[] args) throws InterruptedException, IOException {
+    public static void main1(String[] args) throws InterruptedException, IOException {
 //        main2(args);
         String topicName="test-3";
         Broker broker=new Broker();
@@ -115,5 +115,14 @@ public class Application {
         broker.terminate();
         System.out.println(Thread.activeCount());
         System.exit(0);
+    }
+
+    public static void main(String[] args) {
+        final Broker broker = new Broker();
+        broker.load();
+
+//        final Records tweets = broker.getConsumer("tweets", 0).getRecords(0, false);;
+        final Records tweet2 = broker.getConsumer("tweets", 0).getRecords(11, false);;
+        tweet2.stream().forEach(System.out::println);
     }
 }

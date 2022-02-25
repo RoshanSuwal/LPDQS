@@ -1,6 +1,5 @@
 package org.ekbana.broker.segment.search;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
@@ -14,11 +13,12 @@ public class Node {
     private final long offset;
     private final long criteria;
 //    private final long size;
-    private final AtomicBoolean status=new AtomicBoolean(true);
+    private AtomicBoolean status;
 
-    public Node(long offset,long criteria){
+    public Node(long offset,long criteria,AtomicBoolean status){
         this.offset=offset;
         this.criteria=criteria;
+        this.status=status;
     }
 
     public void setStatus(boolean sta){

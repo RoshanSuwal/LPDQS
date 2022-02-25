@@ -1,4 +1,5 @@
 rootProject.name = 'MiniKafkaSystem'
 include 'Broker'
 include 'Server'
+include 'Client'
 

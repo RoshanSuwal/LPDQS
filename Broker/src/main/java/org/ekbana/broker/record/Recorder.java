@@ -91,7 +91,8 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
             ||(offset>activeSegment.getSegmentMetaData().getCurrentTimeStamp() && isTimeOffset)){
             return null;
         }else {
-            if (topicMetaData.getActiveSegmentMetaData().getOffsetCount()>0 && ((offset>=topicMetaData.getActiveSegmentMetaData().getStartingOffset() && !isTimeOffset)
+            if (topicMetaData.getActiveSegmentMetaData().getOffsetCount()>0
+                    && ((offset>=topicMetaData.getActiveSegmentMetaData().getStartingOffset() && !isTimeOffset)
                 || (offset>=topicMetaData.getActiveSegmentMetaData().getStartingTimeStamp() && isTimeOffset))){
                 // search in active segment
                 return fetchRecords(offset,isTimeOffset,topicMetaData.getActiveSegmentMetaData());
@@ -102,7 +103,11 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
                 return fetchRecords(offset,isTimeOffset,topicMetaData.getPassiveSegmentMetaData());
             }else {
                 final SegmentMetaData segmentMetaData = segmentSearchTree.searchSegment(offset, isTimeOffset);
-                return fetchRecords(offset,isTimeOffset, segmentMetaData);
+                return segmentMetaData==null
+                        ? (passiveSegment != null
+                            ? fetchRecords(offset, isTimeOffset, topicMetaData.getActiveSegmentMetaData())
+                            : fetchRecords(offset, isTimeOffset, topicMetaData.getActiveSegmentMetaData()))
+                        :fetchRecords(offset,isTimeOffset, segmentMetaData);
             }
         }
     }

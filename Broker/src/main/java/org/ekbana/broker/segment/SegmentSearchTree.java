@@ -7,6 +7,7 @@ import org.ekbana.broker.segment.search.RootNode;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class SegmentSearchTree {
@@ -31,6 +32,7 @@ public class SegmentSearchTree {
         return Node.builder()
                 .offset(segmentMetaData.getStartingOffset())
                 .criteria(segmentMetaData.getStartingTimeStamp()) // may be size, timestamp, offset
+                .status(new AtomicBoolean(true))
                 .build();
     }
 
