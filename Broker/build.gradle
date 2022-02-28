@@ -14,12 +14,23 @@ configurations {
         extendsFrom annotationProcessor
     }
 }
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'org.ekbana.broker.Broker'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+}
+
 dependencies {
     implementation 'commons-io:commons-io:2.11.0'
     implementation 'com.google.code.gson:gson:2.9.0'
 
+    implementation 'ch.qos.logback:logback-classic:1.2.10'
 
-    implementation 'org.projectlombok:lombok:1.18.16'
     implementation 'org.junit.jupiter:junit-jupiter:5.4.2'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:4.1.0'

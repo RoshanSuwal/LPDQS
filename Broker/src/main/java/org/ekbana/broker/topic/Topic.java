@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 @Getter @Setter
 @ToString
 public class Topic {
+    private final BrokerConfig brokerConfig;
     private final String topicName;
     private TopicMetaData topicMetaData;
     private Recorder recorder;
@@ -31,14 +32,15 @@ public class Topic {
     // records queue
     private RecordsQueue<Records> recordsQueue;
 
-    public Topic(String topicName,boolean isNew) {
-        this(topicName,isNew,null);
+    public Topic(BrokerConfig brokerConfig,String topicName,boolean isNew) {
+        this(brokerConfig,topicName,isNew,null);
     }
 
-    public Topic(String topicName, boolean isNew, ExecutorService executorService){
+    public Topic(BrokerConfig brokerConfig,String topicName, boolean isNew, ExecutorService executorService){
+        this.brokerConfig=brokerConfig;
         this.topicName = topicName;
         this.topicMetaData=isNew?createTopicMetaData():loadTopicMetaData();
-        recorder=new Recorder(topicName,topicMetaData,BrokerConfig.getInstance().segmentPolicy(),BrokerConfig.getInstance().consumerRecordBatchPolicy(),getOrCreateSegmentSearchTree(isNew));
+        recorder=new Recorder(brokerConfig,topicName,topicMetaData,brokerConfig.segmentPolicy(),brokerConfig.consumerRecordBatchPolicy(),getOrCreateSegmentSearchTree(isNew));
         recordsQueue = new RecordsQueue<>(100,recorder,executorService);
 
         producer=new Producer(recordsQueue,recorder);
@@ -46,10 +48,10 @@ public class Topic {
     }
 
     private SegmentSearchTree getOrCreateSegmentSearchTree(boolean isNew){
-        final SegmentSearchTree segmentSearchTree = new SegmentSearchTree(BrokerConfig.getInstance().getSEGMENT_SEARCH_TREE_NODE_CAPACITY(), BrokerConfig.getInstance().retentionPolicy());
+        final SegmentSearchTree segmentSearchTree = new SegmentSearchTree(brokerConfig.segmentSearchTreeNodeCapacity(), brokerConfig.retentionPolicy());
         if (!isNew){
             try {
-                FileUtil.readAllLines(BrokerConfig.getInstance().getDATA_PATH() +topicName+"/"+BrokerConfig.getInstance().getSEGMENT_FILE_NAME(),SegmentMetaData.class)
+                FileUtil.readAllLines(brokerConfig.rootPath()+brokerConfig.dataPath() +topicName+"/"+brokerConfig.segmentFileName(),SegmentMetaData.class)
                         .forEach(smd->segmentSearchTree.addSegment((SegmentMetaData) smd));
                 segmentSearchTree.reEvaluate();
             } catch (IOException e) {
@@ -81,7 +83,7 @@ public class Topic {
          * loads consumer instance
          * */
         try {
-           return (TopicMetaData) FileUtil.readObjectFromFile(BrokerConfig.getInstance().getDATA_PATH() + topicName + "/" + BrokerConfig.getInstance().getTOPIC_METADATA_FILE_NAME());
+           return (TopicMetaData) FileUtil.readObjectFromFile(brokerConfig.rootPath()+brokerConfig.dataPath() + topicName + "/" + brokerConfig.topicMataDataFileName());
         }catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             return createTopicMetaData();

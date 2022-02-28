@@ -19,6 +19,7 @@ import java.util.ArrayList;
 
 @Getter
 public class Recorder implements RecordsCallback<Records>, SegmentCallback {
+    private final BrokerConfig brokerConfig;
     private final String topicName;
     private final TopicMetaData topicMetaData;
     private final Policy<Segment> segmentPolicy;
@@ -27,7 +28,8 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
     private Segment passiveSegment;
     private final SegmentSearchTree segmentSearchTree;
 
-    public Recorder(String topicName, TopicMetaData topicMetaData, Policy<Segment> segmentPolicy, Policy<Records> consumerRecordBatchPolicy, SegmentSearchTree segmentSearchTree) {
+    public Recorder(BrokerConfig brokerConfig,String topicName, TopicMetaData topicMetaData, Policy<Segment> segmentPolicy, Policy<Records> consumerRecordBatchPolicy, SegmentSearchTree segmentSearchTree) {
+        this.brokerConfig=brokerConfig;
         this.topicName = topicName;
         this.topicMetaData = topicMetaData;
         this.segmentPolicy = segmentPolicy;
@@ -72,7 +74,7 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
      * */
     public void updateTopicMetaData(){
         try {
-            FileUtil.writeObjectToFile(BrokerConfig.getInstance().getDATA_PATH()+topicName+"/"+BrokerConfig.getInstance().getTOPIC_METADATA_FILE_NAME(),topicMetaData);
+            FileUtil.writeObjectToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.topicMataDataFileName(),topicMetaData);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -150,7 +152,7 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
 //        segmentSearchTree.transverse().forEach(System.out::println);
 
         try {
-            FileUtil.writeStreamToFile(BrokerConfig.getInstance().getDATA_PATH()+topicName+"/"+BrokerConfig.getInstance().getSEGMENT_FILE_NAME(),segmentSearchTree.transverse(),SegmentMetaData.class);
+            FileUtil.writeStreamToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.segmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
         } catch (IOException e) {
             e.printStackTrace();
         }

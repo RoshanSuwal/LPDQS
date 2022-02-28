@@ -1,5 +1,6 @@
 package org.ekbana.broker;
 
+import ch.qos.logback.classic.util.ContextInitializer;
 import org.ekbana.broker.consumer.Consumer;
 import org.ekbana.broker.producer.Producer;
 import org.ekbana.broker.record.Record;
@@ -8,11 +9,15 @@ import org.ekbana.broker.segment.SegmentMetaData;
 import org.ekbana.broker.segment.SegmentService;
 import org.ekbana.broker.topic.Topic;
 import org.ekbana.broker.topic.TopicMetaData;
+import org.ekbana.broker.utils.BrokerConfig;
 import org.ekbana.broker.utils.FileUtil;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Application {
 
@@ -24,7 +29,8 @@ public class Application {
         TopicMetaData topicMetaData=TopicMetaData.builder()
                 .activeSegmentMetaData(activeSegment)
                 .build();
-        Topic topic=new Topic(topicName,true);
+        BrokerConfig brokerConfig=new BrokerConfig(new Properties());
+        Topic topic=new Topic(brokerConfig,topicName,true);
         final Producer producer = topic.getProducer();
 //        Producer producer=new Producer("test",topicMetaData,10,new DefaultSegmentPolicy(),new ActiveSegment(activeSegment,new InMemoryStorage<>()));
 //        Producer producer=new Producer(topicName,topicMetaData,10,new DefaultSegmentPolicy(),SegmentService.createActiveSegment("test-1",topicMetaData.getActiveSegment()));
@@ -54,9 +60,10 @@ public class Application {
     public static void main3(String[] args) throws IOException {
 //        FileUtil.getFiles("data/").forEach(path -> System.out.println(path.getName()));
 //        FileUtil.getFiles("data")
+        BrokerConfig brokerConfig=new BrokerConfig(new Properties());
         HashMap<String,Topic> topicHashMap=new HashMap<>();
 //        FileUtil.getFiles("data").forEach(file -> topicHashMap.put(file.getName(),new Topic(file.getName(),false)));
-        FileUtil.getFiles("data").map(path ->new Topic(path.getName().toString(), false)).forEach(topic -> topicHashMap.put(topic.getTopicName(),topic));
+        FileUtil.getFiles("data").map(path ->new Topic(brokerConfig,path.getName().toString(), false)).forEach(topic -> topicHashMap.put(topic.getTopicName(),topic));
 //        topics.forEach(topic -> System.out.println(topic.getTopicMetaData().getPassiveSegmentMetaData()));
         topicHashMap.values().forEach(topic -> {
             System.out.println(topic.getTopicName());
@@ -69,10 +76,11 @@ public class Application {
                 .forEach(System.out::println);
     }
 
-    public static void main1(String[] args) throws InterruptedException, IOException {
+    public static void main22(String[] args) throws InterruptedException, IOException {
 //        main2(args);
         String topicName="test-3";
-        Broker broker=new Broker();
+        ExecutorService executorService= Executors.newFixedThreadPool(10);
+        Broker broker=new Broker(new BrokerConfig(new Properties()),executorService);
         broker.print();
         broker.createTopic(topicName,0);
 
@@ -117,12 +125,17 @@ public class Application {
         System.exit(0);
     }
 
-    public static void main(String[] args) {
-        final Broker broker = new Broker();
+    public static void mainn(String[] args) {
+        ExecutorService executorService= Executors.newFixedThreadPool(10);
+        final Broker broker = new Broker(new BrokerConfig(new Properties()),executorService);
         broker.load();
 
 //        final Records tweets = broker.getConsumer("tweets", 0).getRecords(0, false);;
         final Records tweet2 = broker.getConsumer("tweets", 0).getRecords(11, false);;
         tweet2.stream().forEach(System.out::println);
+    }
+
+    public static void main(String[] args) {
+        System.setProperty(ContextInitializer.CONFIG_FILE_PROPERTY, "/config/logback-classic.xml");
     }
 }

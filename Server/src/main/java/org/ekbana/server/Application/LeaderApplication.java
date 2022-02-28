@@ -1,6 +1,7 @@
 package org.ekbana.server.Application;
 
 import org.ekbana.broker.Broker;
+import org.ekbana.broker.utils.BrokerConfig;
 import org.ekbana.server.broker.KafkaBrokerController;
 import org.ekbana.server.client.*;
 import org.ekbana.server.common.KafkaRouter;
@@ -19,6 +20,7 @@ import org.ekbana.server.util.Mapper;
 import org.ekbana.server.util.Serializer;
 
 import java.io.IOException;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -47,7 +49,9 @@ public class LeaderApplication {
 
     private final Follower follower=new Follower(kafkaServerConfig);
 
-    private final Broker broker=new Broker();
+    private final BrokerConfig brokerConfig=new BrokerConfig(new Properties());
+    ExecutorService producerExecutorService= Executors.newFixedThreadPool(10);
+    private final Broker broker=new Broker(brokerConfig,producerExecutorService);
     private final Mapper<Long, RequestTransaction> brokerTransactionMapper=new Mapper<>();
     private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(kafkaServerConfig,broker,executorService,kafkaRouter,brokerTransactionMapper);
 

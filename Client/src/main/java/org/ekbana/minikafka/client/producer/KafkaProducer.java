@@ -152,8 +152,10 @@ public class KafkaProducer extends KafkaServerClient {
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();
 
-        kafkaProducer.send("hello world");
-        kafkaProducer.send("second message");
+        for (int i=0;i<10;i++) {
+            kafkaProducer.send("hello world");
+            kafkaProducer.send("second message");
+        }
 //        System.exit(0);
         kafkaProducer.stopAfterCompletion();
     }
