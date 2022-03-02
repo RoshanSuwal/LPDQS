@@ -3,6 +3,7 @@ package org.ekbana.minikafka.plugins.factory;
 import org.ekbana.minikafka.common.SegmentMetaData;
 import org.ekbana.minikafka.plugin.policy.Policy;
 import org.ekbana.minikafka.plugin.policy.PolicyFactory;
+import org.ekbana.minikafka.plugin.policy.PolicyType;
 import org.ekbana.minikafka.plugins.policy.CountBasedSegmentBatchPolicy;
 
 import java.util.Properties;
@@ -12,6 +13,11 @@ public class CountBasedSegmentBatchPolicyFactory implements PolicyFactory<Segmen
     @Override
     public String policyName() {
         return "offset-count-based-segment-batch-policy";
+    }
+
+    @Override
+    public PolicyType policyType() {
+        return PolicyType.SEGMENT_BATCH_POLICY;
     }
 
     @Override

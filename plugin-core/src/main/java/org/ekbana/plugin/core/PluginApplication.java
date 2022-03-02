@@ -21,14 +21,16 @@ public class PluginApplication {
                 new DefaultPolicyPlugin())
         );
 
+        System.out.println();
         for (PolicyFactory<?> factory: pluginLoader.getPolicyFactories()){
             if (factory==null){
                 System.err.println("No factories loaded!");
                 continue;
             }
-            System.out.println(factory.policyName());
+            System.out.println(factory.policyName()+" : "+factory.policyType());
         }
 
+        System.out.println();
         final PolicyFactory<?> policyFactory = pluginLoader.getPolicyFactory("size-based-segment-batch-policy");
         System.out.println(policyFactory.policyName());
         final Policy<?> policy = policyFactory.buildPolicy(new Properties());

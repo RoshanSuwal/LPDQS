@@ -61,7 +61,7 @@ public class PluginLoader {
     private void installPlugin(final Plugin plugin) {
         System.out.println("Loading plugin: " + plugin.pluginName()+" : "+plugin.pluginDescription());
         for (PolicyFactory<?> f : plugin.getPolicyFactories()) {
-            System.out.println("Installing plugin : "+f.policyName());
+            System.out.println("Installing policy : "+f.policyName()+" : "+f.policyType());
             policyFactoryMap.put(f.policyName(), f);
         }
     }
