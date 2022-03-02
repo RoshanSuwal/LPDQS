@@ -1,6 +1,7 @@
 package org.ekbana.plugin.core;
 
 import org.ekbana.minikafka.plugin.Plugin;
+import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.minikafka.plugin.policy.PolicyFactory;
 
 import java.io.File;
@@ -15,6 +16,8 @@ import static java.util.Objects.requireNonNull;
 
 public class PluginLoader {
     private final Map<String, PolicyFactory<?>> policyFactoryMap=new HashMap<>();
+    private final Map<String,LoadBalancerFactory<?,?,?>> loadBalancerFactoryMap=new HashMap<>();
+
     private final File pluginsDir;
     private final AtomicBoolean loading=new AtomicBoolean();
 
@@ -64,6 +67,11 @@ public class PluginLoader {
             System.out.println("Installing policy : "+f.policyName()+" : "+f.policyType());
             policyFactoryMap.put(f.policyName(), f);
         }
+
+        for (LoadBalancerFactory<?,?,?> loadBalancerFactory:plugin.getLoadBalancerFactories()){
+            System.out.println("Installing LoadBalancer : "+loadBalancerFactory.loadBalancerName());
+            loadBalancerFactoryMap.put(loadBalancerFactory.loadBalancerName(), loadBalancerFactory);
+        }
     }
 
     private URLClassLoader createPluginClassLoader(File dir) {
@@ -87,8 +95,13 @@ public class PluginLoader {
     public PolicyFactory<?> getPolicyFactory(String name) {
         return policyFactoryMap.get(name);
     }
-
     public List<PolicyFactory<?>> getPolicyFactories(){
         return new ArrayList<>(policyFactoryMap.values());
+    }
+
+    public LoadBalancerFactory<?,?,?> getLoadBalancerFactory(String name) {
+        return loadBalancerFactoryMap.get(name);
+    }
+    public List<LoadBalancerFactory<?,?,?>> getLoadBalancerFactories(){ return new ArrayList<>(loadBalancerFactoryMap.values());
     }
 }

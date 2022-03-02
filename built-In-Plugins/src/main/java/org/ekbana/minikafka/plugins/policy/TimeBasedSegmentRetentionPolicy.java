@@ -15,6 +15,6 @@ public class TimeBasedSegmentRetentionPolicy implements Policy<SegmentMetaData> 
 
     @Override
     public boolean validate(SegmentMetaData segmentMetaData) {
-        return Instant.now().toEpochMilli()-segmentMetaData.getStartingTimeStamp() < segmentLifeSpan;
+        return Instant.now().toEpochMilli()-segmentMetaData.getCurrentTimeStamp() < segmentLifeSpan;
     }
 }

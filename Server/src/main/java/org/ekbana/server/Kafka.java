@@ -59,7 +59,16 @@ public class Kafka {
 
     private final LeaderServer leaderServer=new LeaderServer(kafkaServerConfig,leaderController);
 
+
     private final KafkaServer kafkaServer=new KafkaServer();
+
+    public void load(){
+        // load all the plugins : policies, load balancer
+
+        // validation of configuration file with detail info
+    }
+
+
     public void start() throws IOException, InterruptedException {
         kafkaRouter.register(kafkaClientController);
         kafkaRouter.register(kafkaBrokerController);
@@ -70,19 +79,21 @@ public class Kafka {
 
         executorService.submit(()-> {
             try {
-                kafkaServer.start();
-            } catch (IOException e) {
+                Thread.sleep(1000);
+                follower.connect(executorService);
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         });
 //        leaderServer.startServer(new int[]{9998});
-        Thread.sleep(1000);
-        follower.connect(executorService);
+
 //        kafkaClientServer.startServer(new int[]{9998});
+        kafkaServer.start();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Kafka kafka=new Kafka();
+        kafka.load();
         kafka.start();
     }
 }

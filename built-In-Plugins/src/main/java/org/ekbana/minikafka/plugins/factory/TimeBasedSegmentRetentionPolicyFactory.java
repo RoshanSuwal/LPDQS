@@ -22,7 +22,7 @@ public class TimeBasedSegmentRetentionPolicyFactory implements PolicyFactory<Seg
 
     @Override
     public Policy<SegmentMetaData> buildPolicy(Properties properties) {
-        long segmentLifeSpan=Long.parseLong(properties.getProperty("broker.segment.batch.lifespan","10000"));// 5MB by default
+        long segmentLifeSpan=Long.parseLong(properties.getProperty("broker.segment.batch.lifespan","10000"));// 10 sec by default
         return new TimeBasedSegmentRetentionPolicy(segmentLifeSpan);
     }
 }

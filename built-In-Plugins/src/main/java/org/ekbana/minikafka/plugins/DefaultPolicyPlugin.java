@@ -1,11 +1,13 @@
 package org.ekbana.minikafka.plugins;
 
 
+import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.minikafka.plugin.policy.PolicyFactory;
 import org.ekbana.minikafka.plugin.policy.PolicyPlugin;
 import org.ekbana.minikafka.plugins.factory.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class DefaultPolicyPlugin implements PolicyPlugin {
@@ -28,6 +30,14 @@ public class DefaultPolicyPlugin implements PolicyPlugin {
                 new TimeBasedSegmentRetentionPolicyFactory(),
                 new SizeBasedConsumerRecordBatchPolicyFactory(),
                 new CountBasedConsumerRecordBatchPolicyFactory()
+        );
+    }
+
+    @Override
+    public List<LoadBalancerFactory<?, ?,?>> getLoadBalancerFactories() {
+        return Arrays.asList(
+                new WeightedRoundRobinLoadBalancerFactory(),
+                new ConsistentHashingLoadBalancerFactory()
         );
     }
 }
