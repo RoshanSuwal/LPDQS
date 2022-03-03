@@ -1,6 +1,6 @@
 package org.ekbana.broker.storage.memory;
 
-import org.ekbana.broker.record.Record;
+import org.ekbana.minikafka.common.Record;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -5,13 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 @Getter
 @Setter
 @Builder
 @ToString
-public class SegmentMetaData {
+public class SegmentMetaData implements Serializable {
     private long segmentId;
     private long startingOffset;
     private long startingTimeStamp;

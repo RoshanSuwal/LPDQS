@@ -8,7 +8,7 @@ import org.ekbana.server.common.lr.RBaseTransaction;
 import org.ekbana.server.common.lr.RTransaction;
 import org.ekbana.server.common.mb.ConsumerGroup;
 import org.ekbana.server.common.mb.Topic;
-import org.ekbana.server.leader.KafkaServerConfig;
+import org.ekbana.server.config.KafkaProperties;
 import org.ekbana.server.util.Mapper;
 
 import java.io.IOException;
@@ -18,7 +18,7 @@ import java.io.IOException;
 public class ReplicaController implements Replica {
     // manages topics
     // manages consumers
-    private final KafkaServerConfig kafkaServerConfig;
+    private final KafkaProperties kafkaProperties;
     private final Mapper<String, Topic> topicMapper;
     private final Mapper<String ,Object> consumerGroupMapper;
     private final Mapper<Long,RBaseTransaction> rTransactionMapper;
@@ -69,7 +69,7 @@ public class ReplicaController implements Replica {
 
     public void deleteTopic(Topic topic){
         topicMapper.delete(topic.getTopicName());
-        FileUtil.deleteFile(kafkaServerConfig.getDataPath()+"topic/"+topic.getTopicName()+".txt");
+        FileUtil.deleteFile(kafkaProperties.getDataPath()+"topic/"+topic.getTopicName()+".txt");
     }
 
     public void load(){
@@ -81,7 +81,7 @@ public class ReplicaController implements Replica {
         topicMapper.forEach((key,value)->{
             System.out.println(value.getTopicName());
             try {
-                FileUtil.writeObjectToFile(kafkaServerConfig.getDataPath()+"topic/"+key+".txt",value);
+                FileUtil.writeObjectToFile(kafkaProperties.getDataPath()+"topic/"+key+".txt",value);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -90,7 +90,7 @@ public class ReplicaController implements Replica {
         consumerGroupMapper.forEach((key,value)->{
             System.out.println(value);
             try {
-                FileUtil.writeObjectToFile(kafkaServerConfig.getDataPath()+"consumer/"+key+".txt",value);
+                FileUtil.writeObjectToFile(kafkaProperties.getDataPath()+"consumer/"+key+".txt",value);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -99,7 +99,7 @@ public class ReplicaController implements Replica {
 
     private void loadTopic(){
         try{
-            FileUtil.getFiles(kafkaServerConfig.getDataPath()+"topic/")
+            FileUtil.getFiles(kafkaProperties.getDataPath()+"topic/")
                     .peek(file -> System.out.println(file.getPath()))
                     .forEach(file -> {
                         try {
@@ -117,7 +117,7 @@ public class ReplicaController implements Replica {
 
     private void loadConsumerGroup(){
         try{
-            FileUtil.getFiles(kafkaServerConfig.getDataPath()+"consumer/")
+            FileUtil.getFiles(kafkaProperties.getDataPath()+"consumer/")
                     .forEach(file -> {
                         try {
                             final Object o = FileUtil.readObjectFromFile(file.getPath());

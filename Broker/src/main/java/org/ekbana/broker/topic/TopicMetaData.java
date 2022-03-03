@@ -1,7 +1,7 @@
 package org.ekbana.broker.topic;
 
 import lombok.*;
-import org.ekbana.broker.segment.SegmentMetaData;
+import org.ekbana.minikafka.common.SegmentMetaData;
 
 import java.io.Serializable;
 

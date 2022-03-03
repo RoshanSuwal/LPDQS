@@ -12,6 +12,6 @@ public class CountBasedConsumerRecordBatchPolicy implements Policy<ConsumerRecor
 
     @Override
     public boolean validate(ConsumerRecords consumerRecords) {
-        return consumerRecords.getRecordsCount()<recordCount;
+        return consumerRecords.count()<recordCount;
     }
 }

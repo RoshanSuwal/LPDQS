@@ -2,6 +2,7 @@ package org.ekbana.broker.segment;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.ekbana.minikafka.common.SegmentMetaData;
 
 @RequiredArgsConstructor
 @Getter

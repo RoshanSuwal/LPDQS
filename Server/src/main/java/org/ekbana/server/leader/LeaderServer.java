@@ -3,6 +3,7 @@ package org.ekbana.server.leader;
 import org.ekbana.server.cluster.Node;
 import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.l.LFRequest;
+import org.ekbana.server.config.KafkaProperties;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -10,18 +11,18 @@ import java.nio.channels.SocketChannel;
 
 public class LeaderServer implements KafkaServer.KafkaServerListener {//extends ServerSocket<LeaderClient> {
 
-    private  final KafkaServerConfig kafkaServerConfig;
+    private  final KafkaProperties kafkaProperties;
     private final LeaderController leaderController;
 
-    public LeaderServer(KafkaServerConfig kafkaServerConfig, LeaderController leaderController) {
+    public LeaderServer(KafkaProperties kafkaProperties, LeaderController leaderController) {
 //        super(kafkaServerConfig.getServer_address(), kafkaServerConfig.getPort());
-        this.kafkaServerConfig=kafkaServerConfig;
+        this.kafkaProperties=kafkaProperties;
         this.leaderController = leaderController;
     }
 
     @Override
     public int port(){
-        return kafkaServerConfig.getPort();
+        return Integer.parseInt(kafkaProperties.getKafkaProperty("kafka.server.port"));
     }
 
     @Override

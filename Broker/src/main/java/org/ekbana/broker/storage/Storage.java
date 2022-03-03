@@ -1,6 +1,6 @@
 package org.ekbana.broker.storage;
 
-import org.ekbana.broker.record.Record;
+import org.ekbana.minikafka.common.Record;
 
 public interface Storage<T extends Record> {
 

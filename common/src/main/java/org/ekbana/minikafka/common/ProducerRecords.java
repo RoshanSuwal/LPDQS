@@ -1,14 +1,9 @@
 package org.ekbana.minikafka.common;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.List;
 import java.util.stream.Stream;
 
-@Getter
-@Setter
-public class ConsumerRecords {
+public class ProducerRecords {
     private final List<Record> records;
     private int size;
     private long startingOffset=-1;
@@ -22,7 +17,7 @@ public class ConsumerRecords {
         return startingOffset;
     }
 
-    public ConsumerRecords(List<Record> records){
+    public ProducerRecords(List<Record> records){
         this.records=records;
         this.size=records.stream().mapToInt(Record::size).sum();
     }

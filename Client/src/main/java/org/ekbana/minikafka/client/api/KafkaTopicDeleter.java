@@ -85,7 +85,7 @@ public class KafkaTopicDeleter extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-        properties.setProperty("kafka.topic.name","test");
+        properties.setProperty("kafka.topic.name","tweets");
         properties.setProperty("kafka.topic.numberOfPartitions","2");
         final KafkaTopicDeleter kafkaTopicDeleter = new KafkaTopicDeleter(properties);
         kafkaTopicDeleter.delete();

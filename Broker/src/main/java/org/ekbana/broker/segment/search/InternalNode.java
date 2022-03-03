@@ -1,7 +1,7 @@
 package org.ekbana.broker.segment.search;
 
-import org.ekbana.broker.Policy.SegmentRetentionPolicy;
-import org.ekbana.broker.segment.SegmentMetaData;
+import org.ekbana.minikafka.common.SegmentMetaData;
+import org.ekbana.minikafka.plugin.policy.Policy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,10 +36,10 @@ public class InternalNode {
         return leaves.size();
     }
 
-    public SegmentMetaData search(long offset, boolean isTimeStamp, SegmentRetentionPolicy policy) {
+    public SegmentMetaData search(long offset, boolean isTimeStamp, Policy<SegmentMetaData> policy) {
         int i=0;
         while (nodes.size()>i){
-            if (nodes.get(i).getStatus().getPlain() && policy!=null && !policy.validate(nodes.get(i))){
+            if (nodes.get(i).getStatus().getPlain() && policy!=null && !policy.validate(nodes.get(i).getSegmentMetaData())){
                 nodes.get(i).setStatus(false);
 //                nodes.remove(i);
 //                leaves.remove(i);
@@ -63,9 +63,9 @@ public class InternalNode {
         leaves.get(leaves.size() - 1).print();
     }
 
-    public void reEvaluate(SegmentRetentionPolicy policy) {
+    public void reEvaluate(Policy<SegmentMetaData> policy) {
         if (nodes.size()>0){
-            if (!policy.validate(nodes.get(0))){
+            if (!policy.validate(nodes.get(0).getSegmentMetaData())){
                 System.out.println("\t removing :"+nodes.get(0));
                 nodes.remove(0);
                 leaves.remove(0);

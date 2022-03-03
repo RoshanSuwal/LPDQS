@@ -1,25 +1,24 @@
 package org.ekbana.minikafka.plugins;
 
 
+import org.ekbana.minikafka.plugin.Plugin;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.minikafka.plugin.policy.PolicyFactory;
-import org.ekbana.minikafka.plugin.policy.PolicyPlugin;
 import org.ekbana.minikafka.plugins.factory.*;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
-public class DefaultPolicyPlugin implements PolicyPlugin {
+public class DefaultPlugin implements Plugin {
 
     @Override
     public String pluginName() {
-        return "default policy plugins";
+        return "default plugins";
     }
 
     @Override
     public String pluginDescription() {
-        return "contains all the pre-defined policy plugins";
+        return "contains all the pre-defined plugins";
     }
 
     @Override

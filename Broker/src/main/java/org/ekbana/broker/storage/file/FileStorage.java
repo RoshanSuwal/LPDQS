@@ -1,7 +1,7 @@
 package org.ekbana.broker.storage.file;
 
-import org.ekbana.broker.record.Record;
 import org.ekbana.broker.storage.Storage;
+import org.ekbana.minikafka.common.Record;
 
 import java.io.*;
 

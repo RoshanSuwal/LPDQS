@@ -4,18 +4,19 @@ import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.ServerSocket;
 import org.ekbana.server.common.cm.request.CloseClientRequest;
 import org.ekbana.server.common.cm.request.NewConnectionRequest;
+import org.ekbana.server.config.KafkaProperties;
 
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class KafkaClientServer implements KafkaServer.KafkaServerListener {
 
-    private final KafkaClientConfig kafkaClientConfig;
+    private final KafkaProperties kafkaProperties;
     private final KafkaClientController kafkaClientController;
 
-    public KafkaClientServer(KafkaClientConfig kafkaClientConfig, KafkaClientController kafkaClientController) {
+    public KafkaClientServer(KafkaProperties kafkaProperties, KafkaClientController kafkaClientController) {
 //        super(kafkaClientConfig.getAddress(),kafkaClientConfig.getPort());
-        this.kafkaClientConfig = kafkaClientConfig;
+        this.kafkaProperties = kafkaProperties;
         this.kafkaClientController = kafkaClientController;
     }
 
@@ -26,7 +27,7 @@ public class KafkaClientServer implements KafkaServer.KafkaServerListener {
 
     @Override
     public int port() {
-        return kafkaClientConfig.getPort();
+        return Integer.parseInt(kafkaProperties.getKafkaProperty("kafka.client.server.port"));
     }
 
     @Override

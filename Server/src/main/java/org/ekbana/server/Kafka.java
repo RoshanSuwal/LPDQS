@@ -1,17 +1,20 @@
 package org.ekbana.server;
 
 import org.ekbana.broker.Broker;
-import org.ekbana.broker.utils.BrokerConfig;
+import org.ekbana.broker.utils.KafkaBrokerProperties;
+import org.ekbana.minikafka.plugin.policy.PolicyType;
 import org.ekbana.server.broker.KafkaBrokerController;
 import org.ekbana.server.client.*;
-import org.ekbana.server.client.KafkaClient;
 import org.ekbana.server.common.KafkaRouter;
 import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.mb.RequestTransaction;
 import org.ekbana.server.common.mb.Topic;
+import org.ekbana.server.config.KafkaProperties;
 import org.ekbana.server.follower.Follower;
 import org.ekbana.server.follower.FollowerController;
-import org.ekbana.server.leader.*;
+import org.ekbana.server.leader.LeaderController;
+import org.ekbana.server.leader.LeaderServer;
+import org.ekbana.server.leader.TransactionManager;
 import org.ekbana.server.replica.ReplicaController;
 import org.ekbana.server.util.Deserializer;
 import org.ekbana.server.util.Mapper;
@@ -24,76 +27,143 @@ import java.util.concurrent.Executors;
 
 public class Kafka {
 
-    private final Serializer serializer=new Serializer();
-    private final Deserializer deserializer=new Deserializer();
+    private  final Serializer serializer;
+    private  final Deserializer deserializer;
 
-    private final ExecutorService executorService= Executors.newFixedThreadPool(100);
+    private final ExecutorService kafkaExecutorService;
+    private final ExecutorService brokerExecutorService;
 
-    private final KafkaServerConfig kafkaServerConfig=new KafkaServerConfig("log/","node-0");
-    private final KafkaRouter kafkaRouter=new KafkaRouter();
+    private final KafkaClientRequestParser kafkaClientRequestParser;
+    private final KafkaClientProcessor kafkaClientProcessor;
 
-    private final Follower follower=new Follower(kafkaServerConfig);
-
-    private final BrokerConfig brokerConfig=new BrokerConfig(new Properties());
-    ExecutorService producerExecutorService= Executors.newFixedThreadPool(10);
-    private final Broker broker=new Broker(brokerConfig,producerExecutorService);
-    private final Mapper<Long, RequestTransaction> brokerTransactionMapper=new Mapper<>();
-    private final KafkaBrokerController kafkaBrokerController=new KafkaBrokerController(kafkaServerConfig,broker,executorService,kafkaRouter,brokerTransactionMapper);
-
-    private final KafkaClientConfig kafkaClientConfig=new KafkaClientConfig();
-    private final KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();
-    private final KafkaClientProcessor kafkaClientProcessor=new KafkaClientProcessor();
-    private final Mapper<Long, KafkaClient> kafkaClientMapper=new Mapper<>();
-    private final KafkaClientController kafkaClientController=new KafkaClientController(kafkaClientConfig,kafkaClientRequestParser,kafkaClientProcessor,kafkaRouter,kafkaClientMapper,executorService);
-    private final KafkaClientServer kafkaClientServer=new KafkaClientServer(kafkaClientConfig,kafkaClientController);
+    private final Mapper<Long, RequestTransaction> brokerTransactionMapper = new Mapper<>();
+    private final Mapper<Long, KafkaClient> kafkaClientMapper = new Mapper<>();
+    private final TransactionManager transactionManager = new TransactionManager(new Mapper<>());
+    private final Mapper<String, Topic> topicMapper = new Mapper<>();
 
 
-    private final FollowerController kafkaFollowerController=new FollowerController(kafkaServerConfig,follower,serializer,deserializer,kafkaRouter,executorService);
+    private  KafkaClientController kafkaClientController;
+    private  KafkaClientServer kafkaClientServer;
 
-    private final TransactionManager transactionManager=new TransactionManager(new Mapper<>());
-    private final Mapper<String, Topic> topicMapper=new Mapper<>();
+    private Broker broker;
+    private KafkaBrokerController kafkaBrokerController;
 
-    private final ReplicaController replicaController=new ReplicaController(kafkaServerConfig,new Mapper<>(),new Mapper<>(),new Mapper<>(),kafkaRouter);
+    private  final Follower follower;
+    private  FollowerController kafkaFollowerController;
 
-    private final LeaderController leaderController=new LeaderController(kafkaServerConfig, deserializer, serializer, new Mapper<>(), transactionManager, replicaController,executorService);
+    private ReplicaController replicaController;
 
-    private final LeaderServer leaderServer=new LeaderServer(kafkaServerConfig,leaderController);
+    private  LeaderController leaderController;
+    private  LeaderServer leaderServer;
 
 
-    private final KafkaServer kafkaServer=new KafkaServer();
+    private final KafkaProperties kafkaProperties;
+    private final KafkaBrokerProperties kafkaBrokerProperties;
 
-    public void load(){
-        // load all the plugins : policies, load balancer
+    private final KafkaServer kafkaServer;
+    private final KafkaLoader kafkaLoader;
+    private final   KafkaRouter kafkaRouter;
 
-        // validation of configuration file with detail info
+    public Kafka(KafkaProperties kafkaProperties,KafkaBrokerProperties kafkaBrokerProperties,KafkaLoader kafkaLoader) {
+        this.kafkaProperties = kafkaProperties;
+        this.kafkaBrokerProperties=kafkaBrokerProperties;
+        this.kafkaLoader = kafkaLoader;
+
+        serializer=new Serializer();
+        deserializer=new Deserializer();
+
+        kafkaClientRequestParser=new KafkaClientRequestParser();
+        kafkaClientProcessor=new KafkaClientProcessor();
+
+        kafkaExecutorService=Executors.newFixedThreadPool(100);
+        brokerExecutorService=Executors.newFixedThreadPool(10);
+
+        follower=new Follower(kafkaProperties);
+
+        kafkaRouter=new KafkaRouter();
+        kafkaServer=new KafkaServer();
+
+    }
+
+    public void configureLeader(){
+        leaderController=new LeaderController(kafkaProperties,
+                deserializer,serializer,
+                new Mapper<>(),
+                transactionManager,replicaController,kafkaExecutorService);
+        leaderServer=new LeaderServer(kafkaProperties,leaderController);
+
+        kafkaServer.register(leaderServer.port(),leaderServer);
+    }
+
+    public void configureBroker(){
+        broker=new Broker(kafkaBrokerProperties,
+                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy")).buildPolicy(kafkaBrokerProperties),
+                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy")).buildPolicy(kafkaBrokerProperties),
+                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy")).buildPolicy(kafkaBrokerProperties),
+                brokerExecutorService);
+        broker.load();
+
+        kafkaBrokerController=new KafkaBrokerController(kafkaProperties,broker,kafkaExecutorService,kafkaRouter,brokerTransactionMapper);
+        kafkaRouter.register(kafkaBrokerController);
     }
 
 
-    public void start() throws IOException, InterruptedException {
-        kafkaRouter.register(kafkaClientController);
-        kafkaRouter.register(kafkaBrokerController);
+    public void configureFollower(){
+        kafkaFollowerController=new FollowerController(kafkaProperties,follower,serializer,deserializer,kafkaRouter,kafkaExecutorService);
         kafkaRouter.register(kafkaFollowerController);
+    }
 
-        kafkaServer.register(leaderServer.port(),leaderServer);
+    public void configureClient(){
+        kafkaClientController=new KafkaClientController(kafkaProperties, kafkaClientRequestParser, kafkaClientProcessor, kafkaRouter, kafkaClientMapper, kafkaExecutorService);
+        kafkaClientServer=new KafkaClientServer(kafkaProperties,kafkaClientController);
+
+        kafkaRouter.register(kafkaClientController);
         kafkaServer.register(kafkaClientServer.port(),kafkaClientServer);
+    }
 
-        executorService.submit(()-> {
+    public void configureReplica(){
+        replicaController=new ReplicaController(kafkaProperties, new Mapper<>(), new Mapper<>(), new Mapper<>(), kafkaRouter);
+        replicaController.load();
+        kafkaRouter.register(replicaController);
+    }
+
+    public void start() throws IOException, InterruptedException {
+
+        kafkaExecutorService.submit(() -> {
             try {
                 Thread.sleep(1000);
-                follower.connect(executorService);
+                follower.connect(kafkaExecutorService);
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         });
-//        leaderServer.startServer(new int[]{9998});
 
-//        kafkaClientServer.startServer(new int[]{9998});
         kafkaServer.start();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        Kafka kafka=new Kafka();
-        kafka.load();
-        kafka.start();
+//        Kafka kafka=new Kafka();
+//        kafka.load();
+//        kafka.start();
+        KafkaLoader kafkaLoader = new KafkaLoader("plugins");
+        kafkaLoader.load();
+
+        // creation of broker properties and its validation
+        KafkaBrokerProperties kafkaBrokerProperties = new KafkaBrokerProperties(new Properties());
+        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy"), PolicyType.SEGMENT_BATCH_POLICY);
+        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy"), PolicyType.CONSUMER_RECORD_BATCH_POLICY);
+        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy"), PolicyType.SEGMENT_RETENTION_POLICY);
+
+        // creating broker and passing broker properties and policies
+
+        ExecutorService brokerExecutorService=Executors.newFixedThreadPool(10);
+        final Broker broker = new Broker(kafkaBrokerProperties,
+                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy")).buildPolicy(kafkaBrokerProperties),
+                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy")).buildPolicy(kafkaBrokerProperties),
+                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy")).buildPolicy(kafkaBrokerProperties),
+                brokerExecutorService);
+
+        broker.load();
+
     }
 }

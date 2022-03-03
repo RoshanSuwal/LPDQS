@@ -7,7 +7,7 @@ import org.ekbana.server.common.cm.response.KafkaClientResponse;
 import org.ekbana.server.common.l.*;
 import org.ekbana.server.common.lr.RTransaction;
 import org.ekbana.server.common.mb.Transaction;
-import org.ekbana.server.leader.KafkaServerConfig;
+import org.ekbana.server.config.KafkaProperties;
 import org.ekbana.server.util.Deserializer;
 import org.ekbana.server.util.QueueProcessor;
 import org.ekbana.server.util.Serializer;
@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
 
 public class FollowerController {
 
-    private final KafkaServerConfig kafkaServerConfig;
+    private final KafkaProperties kafkaProperties;
     private final Serializer serializer;
     private final Deserializer deserializer;
     private final ExecutorService executorService;
@@ -27,11 +27,11 @@ public class FollowerController {
     private final QueueProcessor<Object> requestQueueProcessor;
     private final Follower follower;
 
-    public FollowerController(KafkaServerConfig kafkaServerConfig,Follower follower, Serializer serializer, Deserializer deserializer, Router.KafkaFollowerRouter kafkaFollowerRouter, ExecutorService executorService) {
+    public FollowerController(KafkaProperties kafkaProperties,Follower follower, Serializer serializer, Deserializer deserializer, Router.KafkaFollowerRouter kafkaFollowerRouter, ExecutorService executorService) {
         this.serializer = serializer;
         this.deserializer = deserializer;
         this.kafkaFollowerRouter = kafkaFollowerRouter;
-        this.kafkaServerConfig = kafkaServerConfig;
+        this.kafkaProperties = kafkaProperties;
         this.executorService = executorService;
         this.follower=follower;
 
@@ -108,7 +108,7 @@ public class FollowerController {
     private void processLFResponse(LFResponse lfResponse){
         if (lfResponse.getLfResponseType()== LFResponse.LFResponseType.CONNECTED){
             follower.setFollowerState(Follower.FollowerState.CONNECTED);
-            requestQueueProcessor.push(new LFRequest(kafkaServerConfig.getNodeId(), kafkaServerConfig.getUserName(), kafkaServerConfig.getPassword(), LFRequest.LFRequestType.AUTH),true);
+            requestQueueProcessor.push(new LFRequest(kafkaProperties.getKafkaProperty("kafka.server.node.id"), kafkaProperties.getKafkaProperty("kafka.security.auth.username"), kafkaProperties.getKafkaProperty("kafka.security.auth.password"), LFRequest.LFRequestType.AUTH),true);
         }else if (lfResponse.getLfResponseType()== LFResponse.LFResponseType.AUTHENTICATED){
             follower.setFollowerState(Follower.FollowerState.AUTHENTICATED);
         }else if (lfResponse.getLfResponseType()== LFResponse.LFResponseType.UNAUTHENTICATED){

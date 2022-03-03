@@ -26,4 +26,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
 
     implementation project(':Broker')
+    implementation project(':plugin-api')
+    implementation project(':common')
+    implementation project(':plugin-core')
+    implementation project(':built-In-Plugins')
+
 }

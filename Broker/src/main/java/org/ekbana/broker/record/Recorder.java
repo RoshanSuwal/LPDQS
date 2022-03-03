@@ -1,12 +1,16 @@
 package org.ekbana.broker.record;
 
 import lombok.Getter;
-import org.ekbana.broker.Policy.Policy;
 import org.ekbana.broker.segment.*;
 import org.ekbana.broker.storage.Storage;
 import org.ekbana.broker.topic.TopicMetaData;
-import org.ekbana.broker.utils.BrokerConfig;
 import org.ekbana.broker.utils.FileUtil;
+import org.ekbana.broker.utils.KafkaBrokerProperties;
+import org.ekbana.minikafka.common.ConsumerRecords;
+import org.ekbana.minikafka.common.ProducerRecords;
+import org.ekbana.minikafka.common.Record;
+import org.ekbana.minikafka.common.SegmentMetaData;
+import org.ekbana.minikafka.plugin.policy.Policy;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,33 +22,47 @@ import java.util.ArrayList;
  * */
 
 @Getter
-public class Recorder implements RecordsCallback<Records>, SegmentCallback {
-    private final BrokerConfig brokerConfig;
+public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallback {
+//    private final BrokerConfig brokerConfig;
     private final String topicName;
     private final TopicMetaData topicMetaData;
-    private final Policy<Segment> segmentPolicy;
-    private final Policy<Records> consumerRecordBatchPolicy;
+    private final Policy<SegmentMetaData> segmentPolicy;
+    private final Policy<ConsumerRecords> consumerRecordBatchPolicy;
     private Segment activeSegment;
     private Segment passiveSegment;
     private final SegmentSearchTree segmentSearchTree;
+    
+    private final KafkaBrokerProperties kafkaBrokerProperties;
 
-    public Recorder(BrokerConfig brokerConfig,String topicName, TopicMetaData topicMetaData, Policy<Segment> segmentPolicy, Policy<Records> consumerRecordBatchPolicy, SegmentSearchTree segmentSearchTree) {
-        this.brokerConfig=brokerConfig;
+//    public Recorder(BrokerConfig brokerConfig,String topicName, TopicMetaData topicMetaData, Policy<Segment> segmentPolicy, Policy<Records> consumerRecordBatchPolicy, SegmentSearchTree segmentSearchTree) {
+//        this.brokerConfig=brokerConfig;
+//        this.topicName = topicName;
+//        this.topicMetaData = topicMetaData;
+//        this.segmentPolicy = segmentPolicy;
+//        this.consumerRecordBatchPolicy = consumerRecordBatchPolicy;
+//        this.activeSegment = SegmentService.createActiveSegment(topicName,topicMetaData.getActiveSegmentMetaData());
+//        this.passiveSegment = topicMetaData.getPassiveSegmentMetaData()!=null?SegmentService.createActiveSegment(topicName,topicMetaData.getPassiveSegmentMetaData()):null;
+//        this.segmentSearchTree=segmentSearchTree;
+//        updateTopicMetaData();
+//    }
+
+    public Recorder(KafkaBrokerProperties kafkaBrokerProperties, String topicName, TopicMetaData topicMetaData, Policy<SegmentMetaData> segmentPolicy, Policy<ConsumerRecords> consumerRecordBatchPolicy, SegmentSearchTree segmentSearchTree) {
+        this.kafkaBrokerProperties=kafkaBrokerProperties;
         this.topicName = topicName;
         this.topicMetaData = topicMetaData;
         this.segmentPolicy = segmentPolicy;
         this.consumerRecordBatchPolicy = consumerRecordBatchPolicy;
-        this.activeSegment = SegmentService.createActiveSegment(topicName,topicMetaData.getActiveSegmentMetaData());
-        this.passiveSegment = topicMetaData.getPassiveSegmentMetaData()!=null?SegmentService.createActiveSegment(topicName,topicMetaData.getPassiveSegmentMetaData()):null;
+        this.activeSegment = SegmentService.createActiveSegment(kafkaBrokerProperties,topicName,topicMetaData.getActiveSegmentMetaData());
+        this.passiveSegment = topicMetaData.getPassiveSegmentMetaData()!=null?SegmentService.createActiveSegment(kafkaBrokerProperties,topicName,topicMetaData.getPassiveSegmentMetaData()):null;
         this.segmentSearchTree=segmentSearchTree;
         updateTopicMetaData();
     }
 
     @Override
-    public void records(Records records) {
-        records.stream().forEach(record -> {
+    public void records(ProducerRecords producerRecords) {
+        producerRecords.stream().forEach(record -> {
             activeSegment.addRecord(record);
-            if (!segmentPolicy.validate(activeSegment)){
+            if (!segmentPolicy.validate(activeSegment.getSegmentMetaData())){
                 long offset=topicMetaData.getActiveSegmentMetaData().getCurrentOffset();
                 topicMetaData.setPassiveSegmentMetaData(topicMetaData.getActiveSegmentMetaData());
                 final SegmentMetaData activeSegmentMetaData = SegmentMetaData.builder()
@@ -54,7 +72,7 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
                 // set passive segment as current active segment
                 passiveSegment=activeSegment;
                 //creation of new active record segment
-                activeSegment=SegmentService.createActiveSegment(topicName,topicMetaData.getActiveSegmentMetaData());
+                activeSegment=SegmentService.createActiveSegment(kafkaBrokerProperties,topicName,topicMetaData.getActiveSegmentMetaData());
                 // update the topicMetaData
                 updateTopicMetaData();
 
@@ -74,7 +92,8 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
      * */
     public void updateTopicMetaData(){
         try {
-            FileUtil.writeObjectToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.topicMataDataFileName(),topicMetaData);
+//            FileUtil.writeObjectToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.topicMataDataFileName(),topicMetaData);
+            FileUtil.writeObjectToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getTopicMataDataFileName(),topicMetaData);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,7 +106,7 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
      * @param isTimeOffset  determine the type of offset
      * @return records
      * */
-    public Records getRecords(long offset,boolean isTimeOffset){
+    public ConsumerRecords getRecords(long offset,boolean isTimeOffset){
 
         if ((offset>=activeSegment.getSegmentMetaData().getCurrentOffset() && isTimeOffset)
             ||(offset>activeSegment.getSegmentMetaData().getCurrentTimeStamp() && isTimeOffset)){
@@ -121,11 +140,11 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
      * @param segmentMetaData       information about segment from which record is to be fetched
      * @return records
     **/
-    private Records fetchRecords(long offset,boolean isTimeStamp,SegmentMetaData segmentMetaData){
+    private ConsumerRecords fetchRecords(long offset,boolean isTimeStamp,SegmentMetaData segmentMetaData){
         System.out.println("\n\nreader : "+segmentMetaData);
-        Records records=new Records(new ArrayList<>());
+        ConsumerRecords records=new ConsumerRecords(new ArrayList<>());
         if (segmentMetaData==null) return records;
-        Storage<Record> storage=SegmentService.getStorage(topicName,segmentMetaData);
+        Storage<Record> storage=SegmentService.getStorage(kafkaBrokerProperties,topicName,segmentMetaData);
 
         if (isTimeStamp){
             // TODO :
@@ -152,7 +171,8 @@ public class Recorder implements RecordsCallback<Records>, SegmentCallback {
 //        segmentSearchTree.transverse().forEach(System.out::println);
 
         try {
-            FileUtil.writeStreamToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.segmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
+//            FileUtil.writeStreamToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.segmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
+            FileUtil.writeStreamToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getSegmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
         } catch (IOException e) {
             e.printStackTrace();
         }

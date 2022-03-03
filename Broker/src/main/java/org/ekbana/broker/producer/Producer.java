@@ -4,21 +4,20 @@ import lombok.Getter;
 import lombok.Setter;
 import org.ekbana.broker.record.RecordsCallback;
 import org.ekbana.broker.record.RecordsQueue;
-import org.ekbana.broker.segment.Segment;
-import org.ekbana.broker.record.Records;
+import org.ekbana.minikafka.common.ProducerRecords;
 
 @Getter @Setter
 public class Producer {
 //    private final String topicName;
 //    private final TopicMetaData topicMetaData;
-    private final RecordsQueue<Records> recordsQueue;
+    private final RecordsQueue<ProducerRecords> recordsQueue;
 //    private final SegmentPolicy segmentPolicy;
 //    private final SegmentCallback segmentCallback;
 //    private Segment activeSegment;
 
-    private RecordsCallback<Records> recordsCallback;
+    private RecordsCallback<ProducerRecords> recordsCallback;
 
-    public Producer(RecordsQueue<Records> recordsQueue,RecordsCallback<Records> recordsCallback) {
+    public Producer(RecordsQueue<ProducerRecords> recordsQueue, RecordsCallback<ProducerRecords> recordsCallback) {
         this.recordsQueue=recordsQueue;
         this.recordsCallback = recordsCallback;
     }
@@ -52,8 +51,8 @@ public class Producer {
 //        this.recordsQueue = new RecordsQueue<>(queueSize,this,executorService);
 //    }
 //
-    public void addRecords(Records records){
-        this.recordsQueue.add(records);
+    public void addRecords(ProducerRecords producerRecords){
+        this.recordsQueue.add(producerRecords);
     }
 //
 //    @Override

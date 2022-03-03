@@ -13,6 +13,7 @@ import org.ekbana.server.common.l.LResponse;
 import org.ekbana.server.common.lr.RBaseTransaction;
 import org.ekbana.server.common.lr.RTransaction;
 import org.ekbana.server.common.mb.*;
+import org.ekbana.server.config.KafkaProperties;
 import org.ekbana.server.replica.Replica;
 import org.ekbana.server.util.Deserializer;
 import org.ekbana.server.util.Mapper;
@@ -28,7 +29,7 @@ public class LeaderController {
 
     private Cluster cluster=new Cluster();
 
-    private final KafkaServerConfig kafkaServerConfig;
+    private final KafkaProperties kafkaProperties;
     private final Deserializer deserializer;
     private final Serializer serializer;
 //    private final NodeClientMapper nodeClientMapper;
@@ -82,8 +83,8 @@ public class LeaderController {
         }
     };
 
-    public LeaderController(KafkaServerConfig kafkaServerConfig, Deserializer deserializer, Serializer serializer, Mapper<String ,LeaderClient> nodeClientMapper, TransactionManager transactionManager, Replica replica, ExecutorService executorService) {
-        this.kafkaServerConfig = kafkaServerConfig;
+    public LeaderController(KafkaProperties kafkaProperties, Deserializer deserializer, Serializer serializer, Mapper<String ,LeaderClient> nodeClientMapper, TransactionManager transactionManager, Replica replica, ExecutorService executorService) {
+        this.kafkaProperties = kafkaProperties;
         this.deserializer = deserializer;
         this.serializer = serializer;
         this.nodeClientMapper = nodeClientMapper;
@@ -91,9 +92,9 @@ public class LeaderController {
         this.replica = replica;
 
         transactionClientMapper = new Mapper<>();
-        transactionRequestProcessor = new QueueProcessor<>(kafkaServerConfig.getQueueSize(), transactionQueueProcessorListener, executorService);
-        clientResponseProcessor = new QueueProcessor<>(kafkaServerConfig.getQueueSize(), kafkaClientResponseQueueProcessorListener, executorService);
-        leaderClientRRProcessor = new QueueProcessor<>(kafkaServerConfig.getQueueSize(), kafkaLeaderClientQueueProcessor, executorService);
+        transactionRequestProcessor = new QueueProcessor<>(kafkaProperties.getQueueSize(), transactionQueueProcessorListener, executorService);
+        clientResponseProcessor = new QueueProcessor<>(kafkaProperties.getQueueSize(), kafkaClientResponseQueueProcessorListener, executorService);
+        leaderClientRRProcessor = new QueueProcessor<>(kafkaProperties.getQueueSize(), kafkaLeaderClientQueueProcessor, executorService);
     }
 
     public void rawData(LeaderClient leaderClient, byte[] data) {

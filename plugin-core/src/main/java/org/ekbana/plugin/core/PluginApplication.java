@@ -2,7 +2,7 @@ package org.ekbana.plugin.core;
 
 import org.ekbana.minikafka.plugin.policy.Policy;
 import org.ekbana.minikafka.plugin.policy.PolicyFactory;
-import org.ekbana.minikafka.plugins.DefaultPolicyPlugin;
+import org.ekbana.minikafka.plugins.DefaultPlugin;
 
 import java.io.File;
 import java.util.Collections;
@@ -18,7 +18,7 @@ public class PluginApplication {
         pluginLoader.loadPlugins();
 
         pluginLoader.loadBuiltInPlugins(Collections.singletonList(
-                new DefaultPolicyPlugin())
+                new DefaultPlugin())
         );
 
         System.out.println();

@@ -1,7 +1,7 @@
 package org.ekbana.server.follower;
 
 import org.ekbana.server.common.ClientSocket;
-import org.ekbana.server.leader.KafkaServerConfig;
+import org.ekbana.server.config.KafkaProperties;
 
 import java.nio.channels.SocketChannel;
 
@@ -10,13 +10,13 @@ public class Follower extends ClientSocket {
         NOT_CONNECTED, CONNECTED, AUTHENTICATED,CLOSE
     }
 
-    private KafkaServerConfig kafkaServerConfig;
+    private KafkaProperties kafkaProperties;
     private FollowerController.Listener<byte[]> listener;
     private FollowerState followerState;
 
-    public Follower(KafkaServerConfig kafkaServerConfig) {
-        super(kafkaServerConfig.getServer_address(), kafkaServerConfig.getPort());
-        this.kafkaServerConfig = kafkaServerConfig;
+    public Follower(KafkaProperties kafkaProperties) {
+        super(kafkaProperties.getKafkaProperty("kafka.server.address"), Integer.parseInt(kafkaProperties.getKafkaProperty("kafka.server.port")));
+        this.kafkaProperties = kafkaProperties;
         this.followerState = FollowerState.NOT_CONNECTED;
     }
 

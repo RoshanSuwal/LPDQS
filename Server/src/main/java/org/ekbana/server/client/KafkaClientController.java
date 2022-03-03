@@ -3,13 +3,14 @@ package org.ekbana.server.client;
 import org.ekbana.server.common.Router;
 import org.ekbana.server.common.cm.request.KafkaClientRequest;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
+import org.ekbana.server.config.KafkaProperties;
 import org.ekbana.server.util.Mapper;
 import org.ekbana.server.util.QueueProcessor;
 
 import java.util.concurrent.ExecutorService;
 
 public class KafkaClientController {
-    private final KafkaClientConfig kafkaClientConfig;
+    private final KafkaProperties kafkaProperties;
     private final KafkaClientRequestParser kafkaClientRequestParser;
     private final KafkaClientProcessor kafkaClientProcessor;
     private final Router.KafkaClientRouter kafkaClientRouter;
@@ -19,8 +20,8 @@ public class KafkaClientController {
 
     private final QueueProcessor<KafkaClientResponse> kafkaClientResponseQueueProcessor;
 
-    public KafkaClientController(KafkaClientConfig kafkaClientConfig, KafkaClientRequestParser kafkaClientRequestParser, KafkaClientProcessor kafkaClientProcessor, Router.KafkaClientRouter kafkaClientRouter, Mapper<Long, KafkaClient> kafkaClientRequestMapper, ExecutorService executorService) {
-        this.kafkaClientConfig = kafkaClientConfig;
+    public KafkaClientController(KafkaProperties kafkaProperties, KafkaClientRequestParser kafkaClientRequestParser, KafkaClientProcessor kafkaClientProcessor, Router.KafkaClientRouter kafkaClientRouter, Mapper<Long, KafkaClient> kafkaClientRequestMapper, ExecutorService executorService) {
+        this.kafkaProperties = kafkaProperties;
         this.kafkaClientRequestParser = kafkaClientRequestParser;
         this.kafkaClientProcessor = kafkaClientProcessor;
         this.kafkaClientRouter = kafkaClientRouter;

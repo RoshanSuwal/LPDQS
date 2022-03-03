@@ -2,7 +2,7 @@ package org.ekbana.broker.segment.search;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.ekbana.broker.segment.SegmentMetaData;
+import org.ekbana.minikafka.common.SegmentMetaData;
 
 @Getter
 @Setter

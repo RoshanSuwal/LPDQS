@@ -4,8 +4,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.ekbana.broker.storage.Storage;
-import org.ekbana.broker.record.Record;
-import org.ekbana.broker.record.Records;
+import org.ekbana.minikafka.common.Record;
+import org.ekbana.minikafka.common.ProducerRecords;
+import org.ekbana.minikafka.common.SegmentMetaData;
 
 import java.util.Collections;
 
@@ -27,9 +28,9 @@ public class Segment {
         return segmentMetaData.getOffsetCount() > 0 && (offset >= segmentMetaData.getStartingOffset() && offset <= segmentMetaData.getCurrentOffset());
     }
 
-    public Records getRecords(long offset,boolean isTimeOffset){
+    public ProducerRecords getRecords(long offset, boolean isTimeOffset){
         //convert timestamp to record offset
-        return new Records(Collections.singletonList(storage.get(offset)));
+        return new ProducerRecords(Collections.singletonList(storage.get(offset)));
     }
 
     public Record getRecord(long offset){

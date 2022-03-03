@@ -1,9 +1,10 @@
 package org.ekbana.broker.segment;
 
-import org.ekbana.broker.record.Record;
 import org.ekbana.broker.storage.Storage;
 import org.ekbana.broker.storage.file.FileStorage;
-import org.ekbana.broker.utils.BrokerConfig;
+import org.ekbana.broker.utils.KafkaBrokerProperties;
+import org.ekbana.minikafka.common.Record;
+import org.ekbana.minikafka.common.SegmentMetaData;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,7 +16,7 @@ import java.util.concurrent.Executors;
 public class SegmentService {
     private static final ExecutorService executorService= Executors.newFixedThreadPool(3);
 
-    private static final BrokerConfig brokerConfig=new BrokerConfig(new Properties());
+    private static final KafkaBrokerProperties brokerConfig=new KafkaBrokerProperties(new Properties());
 
     public static void registerTask(SegmentTask segmentTask){
         executorService.execute(segmentTask);
@@ -30,13 +31,13 @@ public class SegmentService {
      * @param topic             name of topic
      * @param segmentMetaData   information of segment
      * */
-    public static Segment createActiveSegment(String topic, SegmentMetaData segmentMetaData) {
+    public static Segment createActiveSegment(KafkaBrokerProperties brokerProperties,String topic, SegmentMetaData segmentMetaData) {
         try {
-            Path rootDir = Path.of(brokerConfig.rootPath()+brokerConfig.dataPath() + topic);
-            Path segmentDir = Path.of(brokerConfig.rootPath()+brokerConfig.dataPath() + topic + "/" + segmentMetaData.getSegmentId());
+            Path rootDir = Path.of(brokerProperties.getRootPath()+brokerProperties.getDataPath() + topic);
+            Path segmentDir = Path.of(brokerProperties.getRootPath()+brokerProperties.getDataPath() + topic + "/" + segmentMetaData.getSegmentId());
             if (Files.notExists(rootDir)) Files.createDirectory(rootDir);
             if (Files.notExists(segmentDir)) Files.createDirectory(segmentDir);
-            return new Segment(segmentMetaData, new FileStorage<>(segmentDir.toString()+"/"));
+            return new Segment(segmentMetaData, new FileStorage(segmentDir.toString()+"/"));
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -49,12 +50,13 @@ public class SegmentService {
      * @param segmentMetaData   information about segment
      * @return storage for given segment of the topic
      * */
-    public static Storage<Record> getStorage(String topic, SegmentMetaData segmentMetaData){
-        return new FileStorage<>(brokerConfig.rootPath()+brokerConfig.dataPath()+topic+"/"+segmentMetaData.getSegmentId()+"/");
+    public static Storage<Record> getStorage(KafkaBrokerProperties brokerProperties,String topic, SegmentMetaData segmentMetaData){
+        return new FileStorage<>(brokerProperties.getRootPath()+brokerProperties.getDataPath()+topic+"/"+segmentMetaData.getSegmentId()+"/");
     }
 
     public static void main(String[] args) throws IOException {
-        final Segment activeSegment = createActiveSegment("test-1", SegmentMetaData.builder().segmentId(10).build());
+        KafkaBrokerProperties brokerProperties=new KafkaBrokerProperties(new Properties());
+        final Segment activeSegment = createActiveSegment(brokerProperties,"test-1", SegmentMetaData.builder().segmentId(10).build());
     }
 
 }
