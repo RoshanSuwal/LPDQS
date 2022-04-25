@@ -48,9 +48,11 @@ public class KafkaTopicCreator extends KafkaServerClient {
 
     private void sendToServer() {
         try {
-            if (serverState == ServerState.CONNECTED) write(getAuthRequest());
-            else if (serverState == ServerState.AUTHENTICATED) write(getTopicCreateRequest());
-            else if (serverState == ServerState.CLOSE) close();
+//            if (serverState == ServerState.CONNECTED) write(getAuthRequest());
+//            else if (serverState == ServerState.AUTHENTICATED) write(getTopicCreateRequest());
+//            else if (serverState == ServerState.CLOSE) close();
+            if (serverState==ServerState.CONNECTED) write(getTopicCreateRequest());
+            else if (serverState==ServerState.CLOSE) close();
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
             serverState = ServerState.CLOSE;
@@ -87,7 +89,7 @@ public class KafkaTopicCreator extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-        properties.setProperty("kafka.topic.name","tweets");
+        properties.setProperty("kafka.topic.name","tweets7");
         properties.setProperty("kafka.topic.numberOfPartitions","2");
         final KafkaTopicCreator kafkaTopicCreator = new KafkaTopicCreator(properties);
         kafkaTopicCreator.create();

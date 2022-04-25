@@ -9,4 +9,6 @@ public interface LoadBalancer<T,R> {
     void addNode(T t);
     void removeNode(T t);
     T getAssignedNodeId(R r);
+
+    int getAssignedNodePartitionId(R r);
 }

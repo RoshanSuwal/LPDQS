@@ -3,7 +3,7 @@ package org.ekbana.server.leader;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.ekbana.server.cluster.Node;
+import org.ekbana.minikafka.common.Node;
 import org.ekbana.server.common.KafkaServer;
 
 import java.io.IOException;

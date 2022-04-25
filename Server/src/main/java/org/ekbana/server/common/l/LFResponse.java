@@ -11,7 +11,7 @@ import java.io.Serializable;
 @ToString
 public class LFResponse implements Serializable {
      public enum LFResponseType{
-         CONNECTED,AUTHENTICATED,UNAUTHENTICATED
+         CONNECTED,AUTHENTICATED,UNAUTHENTICATED,CONFIGURED
     }
 
     private final LFResponseType lfResponseType;

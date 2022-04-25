@@ -9,16 +9,17 @@ import org.ekbana.minikafka.plugins.loadbalancer.ConsistentHashingLB;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
 
-public class ConsistentHashingLoadBalancerFactory implements LoadBalancerFactory<Mapper<String, Node>,Node, LBRequest> {
+public class ConsistentHashingLoadBalancerFactory implements LoadBalancerFactory<Properties,Node, LBRequest> {
     @Override
     public String loadBalancerName() {
         return "consistent Hashing";
     }
 
     @Override
-    public LoadBalancer<Node,LBRequest> buildLoadBalancer(Mapper<String, Node> nodeMapper) {
+    public LoadBalancer<Node,LBRequest> buildLoadBalancer(Properties properties) {
         final List<Long> hashes=new ArrayList<>();
         hashes.add(1L);
         hashes.add(11L);
@@ -30,6 +31,6 @@ public class ConsistentHashingLoadBalancerFactory implements LoadBalancerFactory
             else return Long.parseLong(id);
         };
 
-        return new ConsistentHashingLB(nodeMapper,hashFunction,1);
+        return new ConsistentHashingLB(new Mapper<>(),hashFunction,1);
     }
 }

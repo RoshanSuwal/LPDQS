@@ -2,8 +2,8 @@ package org.ekbana.server.leader;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.ekbana.minikafka.common.Node;
 import org.ekbana.server.cluster.Cluster;
-import org.ekbana.server.cluster.Node;
 import org.ekbana.server.common.cm.request.*;
 import org.ekbana.server.common.cm.response.*;
 import org.ekbana.server.common.l.LFRequest;
@@ -135,7 +135,7 @@ public class LeaderController {
                 final LFResponse obj = new LFResponse(LFResponse.LFResponseType.AUTHENTICATED);
                 print(leaderClient.getNode(), obj);
                 leaderClient.send(serializer.serialize(obj));
-                leaderClient.setNode(new Node(lfRequest.getNodeId(),leaderClient.getNode().getAddress()));
+                leaderClient.setNode(new Node(lfRequest.getNodeId(),leaderClient.getNode().getIpAddress()));
                 addNode(leaderClient);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -456,7 +456,6 @@ public class LeaderController {
                                 }
                         ), kafkaClientRequestWrapper.getLeaderClient()
                 ), false);
-
 //                clientResponseProcessor.push(new KafkaClientResponseWrapper(
 //                        new BaseResponse(
 //                                kafkaClientRequestWrapper.getClientRequestId(),

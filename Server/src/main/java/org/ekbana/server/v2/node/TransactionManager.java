@@ -1,4 +1,4 @@
-package org.ekbana.server.leader;
+package org.ekbana.server.v2.node;
 
 import lombok.RequiredArgsConstructor;
 import org.ekbana.minikafka.common.Node;
@@ -8,7 +8,7 @@ import org.ekbana.server.util.Mapper;
 
 @RequiredArgsConstructor
 public class TransactionManager {
-    private final Mapper<Long,TransactionHelper> transactionHelperMapper;
+    private final Mapper<Long, TransactionHelper> transactionHelperMapper;
 
     public Node[] getPartitionNodes(long transactionId){
         return ((RequestTransaction)transactionHelperMapper.get(transactionId).getObj()).getPartitionNodes();
@@ -30,7 +30,7 @@ public class TransactionManager {
         transactionHelperMapper.delete(transactionId);
     }
 
-    public void updateTransaction3PhaseStatus(long transactionId,Node node,ThreePhaseTransactionStatus status){
+    public void updateTransaction3PhaseStatus(long transactionId, Node node, ThreePhaseTransactionStatus status){
         System.out.println("updating 3 phase commit "+ transactionId+" "+node.getId());
         transactionHelperMapper.get(transactionId).setThreePhaseTransactionStatuses(node,status);
 

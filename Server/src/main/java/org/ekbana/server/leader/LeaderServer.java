@@ -1,6 +1,6 @@
 package org.ekbana.server.leader;
 
-import org.ekbana.server.cluster.Node;
+import org.ekbana.minikafka.common.Node;
 import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.l.LFRequest;
 import org.ekbana.server.config.KafkaProperties;

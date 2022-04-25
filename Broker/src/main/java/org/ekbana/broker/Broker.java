@@ -74,8 +74,8 @@ public class Broker {
     }
 
     public void createTopic(String topicName, int partitionId) {
-        log.info("Creating topic : " + topicName + "-" + partitionId);
         removeTopic(topicName, partitionId);
+        log.info("Creating topic : " + topicName + "-" + partitionId);
         topicHashMap.put(topicName+"-"+partitionId,new Topic(kafkaBrokerProperties,topicName+"-"+partitionId,
                 segmentBatchPolicy,
                 segmentRetentionPolicy,
@@ -91,6 +91,7 @@ public class Broker {
     }
 
     public Producer getProducer(String topicName, int partition) {
+        System.out.println(topicName+":"+partition);
         return topicHashMap.get(topicName + "-" + partition).getProducer();
     }
 

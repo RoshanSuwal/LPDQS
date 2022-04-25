@@ -28,6 +28,10 @@ public class KafkaRouter implements Router.KafkaFollowerRouter, Router.KafkaBrok
     }
 
     @Override
+    public void routeFromClientToLeader(KafkaClientRequest kafkaClientRequest) {
+    }
+
+    @Override
     public void register(KafkaBrokerController kafkaBrokerController) {
         this.kafkaBrokerController=kafkaBrokerController;
     }

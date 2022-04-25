@@ -7,7 +7,9 @@ import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancer;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.minikafka.plugins.loadbalancer.WeighedRoundRobinLB;
 
-public class WeightedRoundRobinLoadBalancerFactory implements LoadBalancerFactory<Mapper<String,Node>,Node, LBRequest> {
+import java.util.Properties;
+
+public class WeightedRoundRobinLoadBalancerFactory implements LoadBalancerFactory<Properties,Node, LBRequest> {
 
     @Override
     public String loadBalancerName() {
@@ -15,8 +17,8 @@ public class WeightedRoundRobinLoadBalancerFactory implements LoadBalancerFactor
     }
 
     @Override
-    public LoadBalancer<Node, LBRequest> buildLoadBalancer(Mapper<String, Node> nodeMapper) {
-        return new WeighedRoundRobinLB(nodeMapper);
+    public LoadBalancer<Node, LBRequest> buildLoadBalancer(Properties properties) {
+        return new WeighedRoundRobinLB();
     }
 
 }

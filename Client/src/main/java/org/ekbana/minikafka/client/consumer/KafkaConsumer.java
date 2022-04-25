@@ -141,7 +141,8 @@ public class KafkaConsumer extends KafkaServerClient {
         if (readJson.get("responseType").getAsString().equals("SUCCESS")) {
             if (requestType == RequestType.NEW_CONNECTION) {
                 serverState = ServerState.CONNECTED;
-                sendToServer(getAuthRequest());
+//                sendToServer(getAuthRequest());
+                sendToServer(getConsumerConfigurationRequest());
             } else if (requestType == RequestType.AUTH) {
                 serverState = ServerState.AUTHENTICATED;
                 sendToServer(getConsumerConfigurationRequest());
@@ -216,7 +217,7 @@ public class KafkaConsumer extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Properties properties = new Properties();
-        properties.setProperty("kafka.topic.name", "tweets");
+        properties.setProperty("kafka.topic.name", "tweets5");
         KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);
         kafkaConsumer.connect();
 

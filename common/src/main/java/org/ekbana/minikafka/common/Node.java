@@ -2,10 +2,11 @@ package org.ekbana.minikafka.common;
 
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
-public class Node {
+public class Node implements Serializable {
     private final String id;
     private final String hashId;
     private final String ipAddress;

@@ -34,7 +34,7 @@ public class KafkaLoader {
         return pluginLoader.getPolicyFactory(policyName);
     }
 
-    public LoadBalancerFactory<?,?,?> getLoadBalancer(String loadBalancerName){
+    public LoadBalancerFactory<?,?,?> getLoadBalancerFactory(String loadBalancerName){
         return pluginLoader.getLoadBalancerFactory(loadBalancerName);
     }
 

@@ -13,6 +13,7 @@ public interface Router {
     public interface KafkaClientRouter{
         void register(KafkaClientController kafkaClientController);
         void routeFromClientToFollower(KafkaClientRequest kafkaClientRequest);
+        void routeFromClientToLeader(KafkaClientRequest kafkaClientRequest);
     }
 
     public interface KafkaBrokerRouter{

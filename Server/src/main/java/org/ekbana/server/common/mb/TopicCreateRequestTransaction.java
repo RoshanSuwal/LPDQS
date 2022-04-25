@@ -2,7 +2,7 @@ package org.ekbana.server.common.mb;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.ekbana.server.cluster.Node;
+import org.ekbana.minikafka.common.Node;
 
 @Getter
 @Setter

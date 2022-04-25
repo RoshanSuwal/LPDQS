@@ -9,31 +9,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class WeighedRoundRobinLB implements LoadBalancer<Node, LBRequest> {
-    private final List<String > nodes;
+    private final List<String> nodes;
     private int assignTo;
     private int currentNodeAssignments;
     private final Object lock;
 
-    private final Mapper<String,Node> nodeMapper;
+    private final Mapper<String, Node> nodeMapper;
 
-    public WeighedRoundRobinLB(Mapper<String,Node> nodeMapper) {
-        this.nodeMapper=nodeMapper;
-        this.nodes=new ArrayList<>();
-        this.lock=new Object();
-        this.assignTo=0;
+    public WeighedRoundRobinLB() {
+        this.nodeMapper = new Mapper<>();
+        this.nodes = new ArrayList<>();
+        this.lock = new Object();
+        this.assignTo = 0;
     }
 
     @Override
     public void addNode(Node node) {
-        synchronized (this.lock){
+        synchronized (this.lock) {
             nodes.add(node.getId());
+            nodeMapper.add(node.getId(), node);
         }
     }
 
     @Override
     public void removeNode(Node node) {
-        synchronized (this.lock){
+        synchronized (this.lock) {
             nodes.remove(node.getId());
+            nodeMapper.delete(node.getId());
         }
     }
 
@@ -48,6 +50,20 @@ public class WeighedRoundRobinLB implements LoadBalancer<Node, LBRequest> {
                 currentNodeAssignments = 0;
             }
             return nodeMapper.get(currentNode);
+        }
+    }
+
+    @Override
+    public int getAssignedNodePartitionId(LBRequest lbRequest) {
+        synchronized (this.lock) {
+            assignTo = (assignTo + nodes.size()) % nodes.size();
+            final var currentNode = assignTo;
+            currentNodeAssignments++;
+            if (currentNodeAssignments == nodeMapper.get(nodes.get(assignTo)).getWeight()) {
+                assignTo++;
+                currentNodeAssignments = 0;
+            }
+            return currentNode;
         }
     }
 }

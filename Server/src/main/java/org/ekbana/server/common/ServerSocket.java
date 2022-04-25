@@ -81,25 +81,31 @@ public abstract class ServerSocket<T> {
     }
 
     private void read(SelectionKey selectionKey) throws IOException {
-        SocketChannel socketChannel= (SocketChannel) selectionKey.channel();
-        ByteBuffer byteBuffer=ByteBuffer.allocate(1024*64);
-        int numRead=-1;
-        numRead=socketChannel.read(byteBuffer);
-        byteBuffer.flip();
 
-        final KafkaServer.KafkaServerListener portListener = (KafkaServer.KafkaServerListener)getPortListener(socketChannel.socket().getLocalPort());
-        if (numRead==-1){
-            portListener.onConnectionClose((KafkaServer.KafkaServerClient) selectionKey.attachment());
-//            onConnectionClose((T) selectionKey.attachment());
-            closeConnection(selectionKey);
-        }else {
-            // send read
-            byte[] readByte=new byte[numRead];
-            System.arraycopy(byteBuffer.array(),0,readByte,0,numRead);
+        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+        final KafkaServer.KafkaServerListener portListener = (KafkaServer.KafkaServerListener) getPortListener(socketChannel.socket().getLocalPort());
+        try {
+            ByteBuffer byteBuffer = ByteBuffer.allocate(1024 * 64);
+            int numRead = -1;
+            numRead = socketChannel.read(byteBuffer);
+            byteBuffer.flip();
+
+            if (numRead == -1) {
+                portListener.onConnectionClose((KafkaServer.KafkaServerClient) selectionKey.attachment());
+                closeConnection(selectionKey);
+            } else {
+                // send read
+                byte[] readByte = new byte[numRead];
+                System.arraycopy(byteBuffer.array(), 0, readByte, 0, numRead);
 //            onRead((T) selectionKey.attachment(),readByte);
-            portListener.onRead((KafkaServer.KafkaServerClient)selectionKey.attachment(),readByte);
+                portListener.onRead((KafkaServer.KafkaServerClient) selectionKey.attachment(), readByte);
+            }
+            byteBuffer.clear();
+        }catch (IOException e){
+            e.printStackTrace();
+            portListener.onConnectionClose((KafkaServer.KafkaServerClient) selectionKey.attachment());
+            closeConnection(selectionKey);
         }
-        byteBuffer.clear();
     }
 
     private void closeConnection(SelectionKey selectionKey) throws IOException {

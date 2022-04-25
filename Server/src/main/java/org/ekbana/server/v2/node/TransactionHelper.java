@@ -1,4 +1,4 @@
-package org.ekbana.server.leader;
+package org.ekbana.server.v2.node;
 
 import lombok.Getter;
 import lombok.ToString;
@@ -33,7 +33,7 @@ public class TransactionHelper {
         return null;
     }
 
-    public void setThreePhaseTransactionStatuses(Node node,ThreePhaseTransactionStatus threePhaseTransactionStatus){
+    public void setThreePhaseTransactionStatuses(Node node, ThreePhaseTransactionStatus threePhaseTransactionStatus){
         for (int i=0;i<nodes.length;i++){
             if (node.getId().equals(nodes[i].getId()))
                 threePhaseTransactionStatuses[i]=threePhaseTransactionStatus;
@@ -42,6 +42,6 @@ public class TransactionHelper {
 
     public boolean isReadyForCommit(){
         return Arrays.stream(threePhaseTransactionStatuses).
-                allMatch(threePhaseTransactionStatus -> threePhaseTransactionStatus==ThreePhaseTransactionStatus.ACK);
+                allMatch(threePhaseTransactionStatus -> threePhaseTransactionStatus== ThreePhaseTransactionStatus.ACK);
     }
 }

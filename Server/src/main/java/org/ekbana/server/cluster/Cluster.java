@@ -1,14 +1,14 @@
 package org.ekbana.server.cluster;
 
-import org.ekbana.server.util.Helper;
 import org.ekbana.server.util.Mapper;
+import org.ekbana.minikafka.common.Node;
 
 import java.util.List;
 
 //@AllArgsConstructor
 //@NoArgsConstructor
 public class Cluster {
-    public Mapper<String ,Node> nodeMapper=new Mapper<>();
+    public Mapper<String , Node> nodeMapper=new Mapper<>();
 
     // Load balancer
     // balances the node

@@ -93,8 +93,8 @@ public class KafkaProducer extends KafkaServerClient {
         if (isIdeal.get()) {
             isIdeal.set(false);
             try {
-                if (serverState == ServerState.CONNECTED) write(getAuthRequest());
-                else if (serverState == ServerState.AUTHENTICATED) write(getConfigurationRequest());
+                if (serverState == ServerState.CONNECTED) write(getConfigurationRequest());
+//                else if (serverState == ServerState.AUTHENTICATED) write(getConfigurationRequest());
                 else if (serverState == ServerState.CONFIGURED && hasProducerRecord.get()) write(getProducerRecordWriteRequest());
                 else if (serverState==ServerState.CLOSE) close();
                 else if (stopAfterCompletion.get()) close();
@@ -147,8 +147,8 @@ public class KafkaProducer extends KafkaServerClient {
         Properties properties=new Properties();
         properties.setProperty("kafka.server.address","localhost");
         properties.setProperty("kafka.server.port","9999");
-        properties.setProperty("kafka.topic.name","tweets");
-        properties.setProperty("kafka.topic.partition","0");
+        properties.setProperty("kafka.topic.name","tweets7");
+//        properties.setProperty("kafka.topic.partition","0");
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();
 

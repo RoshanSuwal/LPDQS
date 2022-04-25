@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter @Setter
 @Builder
 public class LBRequest {
-    private String id;
+    private int id;
     private String key;
     private int requestWeight;
 }

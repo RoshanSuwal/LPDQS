@@ -11,12 +11,17 @@ import java.io.Serializable;
 @ToString
 public class LFRequest implements Serializable {
     public enum LFRequestType{
-        AUTH,NEW
+        AUTH,NEW,CONFIGURE
     }
     private  String nodeId;
     private  String username;
     private  String password;
     private final LFRequestType lfRequestType;
+
+    public LFRequest(String nodeId,LFRequestType lfRequestType){
+        this.nodeId=nodeId;
+        this.lfRequestType=lfRequestType;
+    }
 
     public LFRequest(LFRequestType lfRequestType){
         this.lfRequestType=lfRequestType;

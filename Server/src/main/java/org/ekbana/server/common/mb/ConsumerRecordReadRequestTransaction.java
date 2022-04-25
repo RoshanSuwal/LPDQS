@@ -1,7 +1,7 @@
 package org.ekbana.server.common.mb;
 
 import lombok.Getter;
-import org.ekbana.server.cluster.Node;
+import org.ekbana.minikafka.common.Node;
 
 @Getter
 public class ConsumerRecordReadRequestTransaction extends RequestTransaction {
@@ -18,6 +18,6 @@ public class ConsumerRecordReadRequestTransaction extends RequestTransaction {
 
     @Override
     public Node[] getPartitionNodes() {
-        return new Node[]{getTopic().getDataNode()[partition]};
+        return new Node[]{getTopic().getDataNode()[partition==-1?0:partition%getTopic().getNumberOfPartitions()]};
     }
 }
