@@ -5,6 +5,7 @@ import org.ekbana.minikafka.common.Node;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancer;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.server.config.KafkaProperties;
+import org.ekbana.server.util.KafkaLogger;
 import org.ekbana.server.util.Mapper;
 
 public class NodeManager {
@@ -24,11 +25,13 @@ public class NodeManager {
     public void registerNode(Node node){
         nodeMapper.add(node.getId(),node);
         loadBalancer.addNode(node);
+        KafkaLogger.leaderLogger.info("{} : {}","Registered Node ",node.getId());
     }
 
     public void unRegisterNode(Node node){
         nodeMapper.delete(node.getId());
         loadBalancer.removeNode(node);
+        KafkaLogger.leaderLogger.info("{} : {}","Unregistered Node",node.getId());
     }
 
     public boolean hasNode(Node node){

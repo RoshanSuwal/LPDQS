@@ -62,7 +62,7 @@ public class Broker {
 //                    .forEach(topicName -> topicHashMap.put(topicName, new Topic(brokerConfig, topicName, false, producerExecutorService)));
             FileUtil.getDirectories(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath())
                     .map(File::getName)
-                    .peek(System.out::println)
+                    .peek((file)->log.info("Loaded topic : {}",file))
                     .forEach(topicName->topicHashMap.put(topicName,new Topic(kafkaBrokerProperties,topicName,
                             segmentBatchPolicy,
                             segmentRetentionPolicy,
@@ -75,7 +75,7 @@ public class Broker {
 
     public void createTopic(String topicName, int partitionId) {
         removeTopic(topicName, partitionId);
-        log.info("Creating topic : " + topicName + "-" + partitionId);
+        log.info("Creating topic : {}_{} ", topicName, partitionId);
         topicHashMap.put(topicName+"-"+partitionId,new Topic(kafkaBrokerProperties,topicName+"-"+partitionId,
                 segmentBatchPolicy,
                 segmentRetentionPolicy,
@@ -85,13 +85,13 @@ public class Broker {
     }
 
     public void removeTopic(String topicName, int partitionId) {
-        log.info("removing topic : " + topicName + "-" + partitionId);
+        log.info("removing topic : {}_{}", topicName, partitionId);
         FileUtil.deleteDirectory(kafkaBrokerProperties.getRootPath() + kafkaBrokerProperties.getDataPath() + topicName + "-" + partitionId);
         topicHashMap.remove(topicName);
     }
 
     public Producer getProducer(String topicName, int partition) {
-        System.out.println(topicName+":"+partition);
+//        System.out.println(topicName+":"+partition);
         return topicHashMap.get(topicName + "-" + partition).getProducer();
     }
 
@@ -109,6 +109,11 @@ public class Broker {
 
     public void terminate() {
         producerExecutorService.shutdown();
+    }
+
+    public void onStop(){
+        terminate();
+        topicHashMap.values().forEach(topic -> topic.saveToDisk());
     }
 
     public static void main(String[] args) {

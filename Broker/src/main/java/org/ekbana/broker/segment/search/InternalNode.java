@@ -1,5 +1,7 @@
 package org.ekbana.broker.segment.search;
 
+import org.ekbana.broker.Broker;
+import org.ekbana.broker.utils.BrokerLogger;
 import org.ekbana.minikafka.common.SegmentMetaData;
 import org.ekbana.minikafka.plugin.policy.Policy;
 
@@ -66,7 +68,7 @@ public class InternalNode {
     public void reEvaluate(Policy<SegmentMetaData> policy) {
         if (nodes.size()>0){
             if (!policy.validate(nodes.get(0).getSegmentMetaData())){
-                System.out.println("\t removing :"+nodes.get(0));
+                BrokerLogger.searchTreeLogger.debug("Removing internal node : {}",nodes.get(0));
                 nodes.remove(0);
                 leaves.remove(0);
                 reEvaluate(policy);

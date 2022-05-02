@@ -19,7 +19,7 @@ public class KafkaClient implements KafkaServer.KafkaServerClient {
     public void send(KafkaClientResponse kafkaClientResponse){
         try {
             socketChannel.write(ByteBuffer.wrap(new Gson().toJson(kafkaClientResponse).getBytes()));
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

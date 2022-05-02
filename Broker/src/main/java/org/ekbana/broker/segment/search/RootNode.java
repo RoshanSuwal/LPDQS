@@ -1,13 +1,17 @@
 package org.ekbana.broker.segment.search;
 
+import org.ekbana.broker.utils.BrokerLogger;
 import org.ekbana.minikafka.common.SegmentMetaData;
 import org.ekbana.minikafka.plugin.policy.Policy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class RootNode {
+
     private final List<Node> nodes;
     private final List<InternalNode> internalNodes;
     private final int n;
@@ -62,7 +66,8 @@ public class RootNode {
             if (policy.validate(nodes.get(0).getSegmentMetaData())) {
                 internalNodes.get(0).reEvaluate(policy);
             } else {
-                System.out.println("removing : "+nodes.get(0));
+//                System.out.println("removing : "+nodes.get(0));
+                BrokerLogger.searchTreeLogger.debug("Removing Root Node : {}",nodes.get(0));
                 internalNodes.remove(0);
                 nodes.remove(0);
                 reEvaluate(policy);

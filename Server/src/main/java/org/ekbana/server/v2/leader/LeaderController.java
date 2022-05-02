@@ -1,6 +1,5 @@
 package org.ekbana.server.v2.leader;
 
-import org.ekbana.server.cluster.Node;
 import org.ekbana.server.common.cm.request.*;
 import org.ekbana.server.common.cm.response.BaseResponse;
 import org.ekbana.server.common.cm.response.ConsumerConfigResponse;

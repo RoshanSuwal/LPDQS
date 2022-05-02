@@ -4,6 +4,7 @@ import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.cm.request.CloseClientRequest;
 import org.ekbana.server.common.cm.request.NewConnectionRequest;
 import org.ekbana.server.config.KafkaProperties;
+import org.ekbana.server.util.KafkaLogger;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
@@ -30,7 +31,8 @@ public class KafkaClientServer implements KafkaServer.KafkaServerListener {
 
     @Override
     public void onStart() {
-        System.out.println("Kafka Client server started at port  "+port());
+        KafkaLogger.networkLogger.info("Kafka Client server started at port {}",port());
+//        System.out.println("Kafka Client server started at port  "+port());
     }
 
     @Override
@@ -45,7 +47,8 @@ public class KafkaClientServer implements KafkaServer.KafkaServerListener {
 
     @Override
     public void onConnectionCreated(KafkaServer.KafkaServerClient kafkaServerClient) {
-        System.out.println("New client connection received");
+//        System.out.println("New client connection received");
+        KafkaLogger.networkLogger.info("new client connection received");
         kafkaClientController.request((KafkaClient) kafkaServerClient,new NewConnectionRequest());
     }
 

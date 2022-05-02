@@ -9,13 +9,14 @@ public class KafkaProperties extends Properties {
 
     private final Map<String,String> defaultPropertiesValue=Map.of(
             "kafka.server.address","localhost",
-            "kafka.server.port","9998",
+            "kafka.node.server.port","9998",
             "kafka.client.server.port","9999",
             "kafka.security.auth.username","username",
             "kafka.security.auth.password","password",
             "kafka.server.node.id","node-0",
             "kafka.storage.data.path","log/",
-            "kafka.request.queue.size","100"
+            "kafka.request.queue.size","100",
+            "kafka.loadbalancer.policy","weighted-round-robin"
             );
 
     public KafkaProperties(String filePath) throws IOException {
@@ -31,7 +32,7 @@ public class KafkaProperties extends Properties {
         return getProperty(key,defaultPropertiesValue.getOrDefault(key,""));
     }
 
-    public String getDataPath(){
+    public String getRootPath(){
         return getKafkaProperty("kafka.storage.data.path");
     }
 

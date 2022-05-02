@@ -3,9 +3,14 @@ package org.ekbana.broker.segment;
 import org.ekbana.broker.segment.search.Leaf;
 import org.ekbana.broker.segment.search.Node;
 import org.ekbana.broker.segment.search.RootNode;
+import org.ekbana.broker.utils.BrokerLogger;
+import org.ekbana.broker.utils.FileUtil;
 import org.ekbana.minikafka.common.SegmentMetaData;
 import org.ekbana.minikafka.plugin.policy.Policy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -25,7 +30,6 @@ public class SegmentSearchTree {
                 new Leaf(segmentMetaData)
         );
         // update segment retention policy criteria value if needed
-        reEvaluate();
     }
 
     private Node createNode(SegmentMetaData segmentMetaData){
@@ -44,11 +48,22 @@ public class SegmentSearchTree {
     public void reEvaluate(){
         if (segmentRetentionPolicy!=null) {
 //            segmentRetentionPolicy.setCompareWith(Instant.now().toEpochMilli());
+            BrokerLogger.searchTreeLogger.debug("Segment Search Tree : Re-evaluation started..");
             rootNode.reEvaluate(segmentRetentionPolicy);
+            BrokerLogger.searchTreeLogger.debug("Segment Search Tree : Re-evaluation ended..");
+
         }
     }
 
     public List<SegmentMetaData> transverse(){
         return rootNode.transverse().collect(Collectors.toList());
+    }
+
+    public void dumpTreeToFile(String path){
+        try {
+            FileUtil.writeStreamToFile(path,this.transverse(),SegmentMetaData.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

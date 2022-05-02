@@ -14,4 +14,6 @@ dependencies {
     implementation project(':plugin-api')
     implementation project(':built-In-Plugins')
 
+    implementation 'ch.qos.logback:logback-classic:1.2.10'
+
 }

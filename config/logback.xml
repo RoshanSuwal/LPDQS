@@ -15,4 +15,8 @@
         <appender-ref ref="CONSOLE"/>
     </root>
 
+    <root level="*">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
 </configuration>

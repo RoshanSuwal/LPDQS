@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'org.springframework.boot' version '2.4.1'
 }
 
 group 'org.ekbana'
@@ -12,6 +13,17 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+}
+
+bootJar{
+//    manifest {
+//        attributes 'Main-Class' : 'org.ekbana.server.v2.KafkaApplication'
+//    }
+    enabled=true
+}
+
+jar{
+    enabled=true
 }
 
 dependencies {
@@ -30,5 +42,7 @@ dependencies {
     implementation project(':common')
     implementation project(':plugin-core')
     implementation project(':built-In-Plugins')
+
+    implementation 'ch.qos.logback:logback-classic:1.2.10'
 
 }

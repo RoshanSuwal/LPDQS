@@ -8,6 +8,7 @@ import org.ekbana.broker.producer.Producer;
 import org.ekbana.broker.record.Recorder;
 import org.ekbana.broker.record.RecordsQueue;
 import org.ekbana.broker.segment.SegmentSearchTree;
+import org.ekbana.broker.utils.BrokerLogger;
 import org.ekbana.broker.utils.FileUtil;
 import org.ekbana.broker.utils.KafkaBrokerProperties;
 import org.ekbana.minikafka.common.ConsumerRecords;
@@ -37,6 +38,8 @@ public class Topic {
     private final Policy<?> segmentRetentionPolicy;
     private final Policy<?> consumerRecordBatchPolicy;
 
+    final SegmentSearchTree segmentSearchTree;
+
 //    public Topic(BrokerConfig brokerConfig,String topicName,boolean isNew) {
 //        this(brokerConfig,topicName,isNew,null);
 //    }
@@ -64,7 +67,9 @@ public class Topic {
         this.consumerRecordBatchPolicy=consumerRecordBatchPolicy;
         this.topicMetaData=isNew?createTopicMetaData():loadTopicMetaData();
 
-        recorder=new Recorder(kafkaBrokerProperties,topicName,topicMetaData,segmentBatchPolicy,consumerRecordBatchPolicy,getOrCreateSegmentSearchTree(isNew));
+        this.segmentSearchTree = getOrCreateSegmentSearchTree(isNew);
+
+        recorder=new Recorder(kafkaBrokerProperties,topicName,topicMetaData,segmentBatchPolicy,consumerRecordBatchPolicy, segmentSearchTree);
         recordsQueue = new RecordsQueue<>(100,recorder,executorService);
 
         producer=new Producer(recordsQueue,recorder);
@@ -116,5 +121,11 @@ public class Topic {
             e.printStackTrace();
             return createTopicMetaData();
         }
+    }
+
+    public void saveToDisk(){
+        BrokerLogger.brokerLogger.info("[Saving to disk] - topic : {}",topicName);
+        recorder.updateTopicMetaData();
+        segmentSearchTree.dumpTreeToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getSegmentFileName());
     }
 }

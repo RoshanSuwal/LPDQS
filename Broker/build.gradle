@@ -9,6 +9,7 @@ repositories {
     mavenCentral()
 }
 
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor

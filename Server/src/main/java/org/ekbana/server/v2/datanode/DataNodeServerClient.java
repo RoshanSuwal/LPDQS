@@ -2,6 +2,7 @@ package org.ekbana.server.v2.datanode;
 
 import org.ekbana.server.common.ClientSocket;
 import org.ekbana.server.config.KafkaProperties;
+import org.ekbana.server.util.KafkaLogger;
 
 import java.nio.channels.SocketChannel;
 
@@ -20,7 +21,7 @@ public class DataNodeServerClient extends ClientSocket{
     }
 
     public DataNodeServerClient(KafkaProperties kafkaProperties){
-        this(kafkaProperties.getKafkaProperty("kafka.server.address"), Integer.parseInt(kafkaProperties.getKafkaProperty("kafka.server.port")));
+        this(kafkaProperties.getKafkaProperty("kafka.server.address"), Integer.parseInt(kafkaProperties.getKafkaProperty("kafka.node.server.port")));
         this.kafkaProperties=kafkaProperties;
         this.nodeState=NodeState.NOT_CONNECTED;
     }
@@ -39,12 +40,12 @@ public class DataNodeServerClient extends ClientSocket{
 
     @Override
     protected void onStart(SocketChannel socketChannel) {
-        System.out.println("Data node connected to "+socketChannel.socket().getRemoteSocketAddress());
+        KafkaLogger.networkLogger.info("Data node connected to : {}",socketChannel.socket().getRemoteSocketAddress());
     }
 
     @Override
     protected void onClose() {
-        System.out.println("Socket Connection Closed");
+        KafkaLogger.networkLogger.info("Data Node Connection Closed");
     }
 
     @Override

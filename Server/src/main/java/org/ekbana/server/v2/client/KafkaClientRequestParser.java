@@ -8,7 +8,7 @@ public class KafkaClientRequestParser {
 
     public KafkaClientRequest parse(byte[] bytes){
         final String json = new String(bytes);
-        System.out.println(json);
+//        System.out.println(json);
         final JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);
         return jsonObject.has("requestType")?
                switch (KafkaClientRequest.RequestType.valueOf(jsonObject.get("requestType").getAsString())){
@@ -27,9 +27,9 @@ public class KafkaClientRequestParser {
                }:new NonParsableRequest();
     }
 
-    public static void main(String[] args) {
-        KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();
-        kafkaClientRequestParser.parse(new Gson().toJson(new AuthRequest()).getBytes());
-        kafkaClientRequestParser.parse(new Gson().toJson(new TopicCreateRequest("test",1)).getBytes());
-    }
+//    public static void main(String[] args) {
+//        KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();
+//        kafkaClientRequestParser.parse(new Gson().toJson(new AuthRequest()).getBytes());
+//        kafkaClientRequestParser.parse(new Gson().toJson(new TopicCreateRequest("test",1)).getBytes());
+//    }
 }

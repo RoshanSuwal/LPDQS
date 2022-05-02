@@ -52,7 +52,8 @@ public class NodeController {
     }
 
     public void processRequest(KafkaClientRequest kafkaClientRequest, Topic topic) {
-        System.out.println(kafkaClientRequest + "\n" + topic);
+//        System.out.println(kafkaClientRequest + "\n" + topic);
+        KafkaLogger.nodeLogger.info("processing request - topic : {} Request : {}",topic,kafkaClientRequest);
         final Long generateTransactionId = Generator.generateTransactionId();
         switch (kafkaClientRequest.getRequestType()) {
             case TOPIC_CREATE -> {
@@ -105,12 +106,14 @@ public class NodeController {
     }
 
     public void registerTransaction(Transaction transaction) {
-        System.out.println(transaction);
+//        System.out.println(transaction);
+        KafkaLogger.nodeLogger.info("{} : {}","registering",transaction);
         transactionQueueProcessor.push(transaction, false);
     }
 
     public void processTransaction(Transaction transaction) {
-        System.out.println("process : " + transaction);
+//        System.out.println("process : " + transaction);
+        KafkaLogger.nodeLogger.info("{} : {}","processing",transaction);
         switch (transaction.getAction()) {
             case REGISTER -> {
 //                if (((RequestTransaction) transaction).getRequestType() == TransactionType.RequestType.PRODUCER_RECORD_WRITE) {
@@ -134,7 +137,6 @@ public class NodeController {
 //                    }
 //
 //                } else {
-
                 if (((RequestTransaction) transaction).getPartitionNodes() == null) {
                     router.routeToClient(
                             new BaseResponse(
@@ -261,7 +263,7 @@ public class NodeController {
     }
 
     public void processNodeConfiguration(LeaderClient leaderClient, LFRequest lfRequest) {
-        System.out.println(lfRequest);
+        KafkaLogger.nodeLogger.info("{}:{}","Node configuration",lfRequest);
         if (lfRequest.getLfRequestType() == LFRequest.LFRequestType.NEW) {
             try {
                 leaderClient.setLeaderClientState(LeaderClientState.CONNECTED);

@@ -15,6 +15,6 @@ public class SegmentTask implements Runnable {
     @Override
     public void run() {
         segmentCallback.onSegmentProcessSuccess(segmentMetaData);
-        System.out.println(Thread.currentThread().getName()+" : "+SegmentTask.class.getSimpleName()+" : "+segmentMetaData.toString());
+//        System.out.println(Thread.currentThread().getName()+" : "+SegmentTask.class.getSimpleName()+" : "+segmentMetaData.toString());
     }
 }

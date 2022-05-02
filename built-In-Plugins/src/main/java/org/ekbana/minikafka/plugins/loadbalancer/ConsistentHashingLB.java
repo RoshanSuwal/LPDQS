@@ -59,7 +59,6 @@ public class ConsistentHashingLB implements LoadBalancer<Node, LBRequest> {
         if (entry==null) return nodeMapper.get(hashNodeMapping.get(nodeMappings.firstEntry().getValue()));
         else return nodeMapper.get(hashNodeMapping.get(entry.getValue()));
     }
-
     @Override
     public int getAssignedNodePartitionId(LBRequest lbRequest) {
         return 0;

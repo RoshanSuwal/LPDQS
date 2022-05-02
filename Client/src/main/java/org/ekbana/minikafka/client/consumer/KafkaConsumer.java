@@ -32,7 +32,7 @@ public class KafkaConsumer extends KafkaServerClient {
     private AtomicBoolean isRequesting;
 
     public KafkaConsumer(Properties properties) {
-        super(properties.getProperty("kafka.server.address", "localhost"), Integer.parseInt(properties.getProperty("kafka.server.port", "9999")));
+        super(properties.getProperty("kafka.server.address", "10.10.50.162"), Integer.parseInt(properties.getProperty("kafka.server.port", "9999")));
         this.properties = properties;
         this.serverState = ServerState.NOT_CONNECTED;
         this.stopAfterCompletion = new AtomicBoolean(true);
@@ -217,7 +217,7 @@ public class KafkaConsumer extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Properties properties = new Properties();
-        properties.setProperty("kafka.topic.name", "tweets5");
+        properties.setProperty("kafka.topic.name", "tweets2");
         KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);
         kafkaConsumer.connect();
 

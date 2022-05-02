@@ -17,11 +17,12 @@ public class Segment {
     private final SegmentMetaData segmentMetaData;
     private final Storage<Record> storage;
 
-    public void addRecord(Record record) {
-        System.out.println(Thread.currentThread().getName() + " :" + record.getData() + " : " + storage.size());
+    public Record addRecord(Record record) {
+//        System.out.println(Thread.currentThread().getName() + " :" + record.getData() + " : " + storage.size());
         final long offset = segmentMetaData.addRecordMetaData(record.size());
         record.setOffset(offset);
         storage.store(record);
+        return record;
     }
 
     public boolean hasRecord(long offset) {

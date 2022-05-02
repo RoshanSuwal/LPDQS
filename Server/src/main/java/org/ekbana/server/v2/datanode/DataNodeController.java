@@ -63,7 +63,7 @@ public class DataNodeController {
     }
 
     public void processTransaction(Transaction transaction) {
-        System.out.println(transaction);
+        KafkaLogger.transactionLogger.info("{} : {}","processing",transaction);
         switch (transaction.getAction()) {
             case REGISTER -> {
                 transactionMapper.add(transaction.getTransactionId(), (RequestTransaction) transaction);
@@ -71,7 +71,6 @@ public class DataNodeController {
             }
             case COMMIT -> {
                 // register in queue to process transaction
-                System.out.println("comiting request");
                 requestTransactionQueueProcessor.push(transactionMapper.get(transaction.getTransactionId()), false);
             }
             case ABORT -> {
@@ -84,7 +83,7 @@ public class DataNodeController {
     }
 
     public void processNode(LFResponse lfResponse) {
-        System.out.println(lfResponse);
+        KafkaLogger.dataNodeLogger.info("{} : {}","Configuring node",lfResponse);
         if (lfResponse.getLfResponseType() == LFResponse.LFResponseType.CONNECTED) {
             dataNodeServerClient.setNodeState(DataNodeServerClient.NodeState.CONNECTED);
             transactionResponseQueueProcessor.push(new LFRequest(kafkaProperties.getKafkaProperty("kafka.server.node.id"), LFRequest.LFRequestType.CONFIGURE),true);
@@ -97,6 +96,7 @@ public class DataNodeController {
     }
 
     public void sendToLeader(Object obj) {
+        KafkaLogger.nodeLogger.info("[Response to leader] {}",obj);
         try {
             if (obj instanceof LFRequest || dataNodeServerClient.getNodeState()== DataNodeServerClient.NodeState.CONFIGURED) {
                 dataNodeServerClient.write(serializer.serialize(obj));
@@ -108,8 +108,7 @@ public class DataNodeController {
     }
 
     public void executeTransaction(RequestTransaction requestTransaction) {
-
-        System.out.println("executing : "+requestTransaction);
+        KafkaLogger.transactionLogger.info("{} : {}","executing",requestTransaction);
         switch (requestTransaction.getRequestType()) {
             case TOPIC_PARTITION_CREATE -> {
                 final TopicCreateRequestTransaction topicCreateRequestTransaction = (TopicCreateRequestTransaction) requestTransaction;
@@ -131,8 +130,6 @@ public class DataNodeController {
             }
             case PRODUCER_RECORD_WRITE -> {
                 final ProducerRecordWriteRequestTransaction producerRecordWriteRequestTransaction = (ProducerRecordWriteRequestTransaction) requestTransaction;
-                producerRecordWriteRequestTransaction.getProducerRecords().forEach(System.out::println);
-
                 final List<Record> collect = producerRecordWriteRequestTransaction.getProducerRecords().stream().map(data -> new Record(producerRecordWriteRequestTransaction.getTopic().getTopicName(), (String) data, producerRecordWriteRequestTransaction.getPartition())).collect(Collectors.toList());
                 broker.getProducer(producerRecordWriteRequestTransaction.getTopic().getTopicName(), producerRecordWriteRequestTransaction.getPartition()).addRecords(new org.ekbana.minikafka.common.ProducerRecords(collect));
             }
@@ -142,7 +139,7 @@ public class DataNodeController {
                         .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
 
                 final ConsumerRecords consumerRecords = new ConsumerRecords(consumerRecordReadRequestTransaction.getPartition(), records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
-                System.out.println(consumerRecords);
+//                System.out.println(consumerRecords);
                 transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
                         consumerRecordReadRequestTransaction.getTransactionId(),
                         TransactionType.Action.SUCCESS,

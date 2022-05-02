@@ -4,6 +4,7 @@ import org.ekbana.minikafka.common.Mapper;
 import org.ekbana.server.common.cm.request.InvalidRequest;
 import org.ekbana.server.common.cm.request.KafkaClientRequest;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
+import org.ekbana.server.util.KafkaLogger;
 import org.ekbana.server.util.QueueProcessor;
 import org.ekbana.server.v2.common.KafkaRouter;
 import org.ekbana.server.v2.common.Router;
@@ -34,7 +35,7 @@ public class KafkaClientController {
 
     public void request(KafkaClient kafkaClient,KafkaClientRequest kafkaClientRequest){
         final KafkaClientRequest processedRequest = ClientProcessor.processRequest(kafkaClient, kafkaClientRequest);
-        System.out.println(processedRequest);
+        KafkaLogger.clientLogger.debug("{}",processedRequest);
         clientRequestMapper.add(processedRequest.getClientRequestId(), kafkaClient);
         // route request to leader for further procession
         kafkaRouter.routeToLeader(processedRequest);
@@ -46,7 +47,7 @@ public class KafkaClientController {
     }
 
     public void sendToClient(KafkaClientResponse kafkaClientResponse){
-        System.out.println(kafkaClientResponse);
+        KafkaLogger.clientLogger.debug("{}",kafkaClientResponse);
         if (clientRequestMapper.has(kafkaClientResponse.getClientResponseId())){
             clientRequestMapper.get(kafkaClientResponse.getClientResponseId())
                     .send(ClientProcessor.processResponse(clientRequestMapper.get(kafkaClientResponse.getClientResponseId()),kafkaClientResponse));
@@ -67,7 +68,7 @@ public class KafkaClientController {
     private static class ClientProcessor{
 
         public static KafkaClientRequest processRequest(KafkaClient kafkaClient,KafkaClientRequest kafkaClientRequest){
-            System.out.println("[Client] ["+ kafkaClient.getKafkaClientState()+"] "+kafkaClientRequest.getRequestType());
+//            System.out.println("[Client] ["+ kafkaClient.getKafkaClientState()+"] "+kafkaClientRequest.getRequestType());
             kafkaClientRequest.setClientRequestId(IdGenerator.generate());
 
             if (kafkaClientRequest.getRequestType()== KafkaClientRequest.RequestType.NON_PARSABLE){

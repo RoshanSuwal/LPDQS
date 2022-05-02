@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.ekbana.broker.segment.*;
 import org.ekbana.broker.storage.Storage;
 import org.ekbana.broker.topic.TopicMetaData;
+import org.ekbana.broker.utils.BrokerLogger;
 import org.ekbana.broker.utils.FileUtil;
 import org.ekbana.broker.utils.KafkaBrokerProperties;
 import org.ekbana.minikafka.common.ConsumerRecords;
@@ -11,6 +12,8 @@ import org.ekbana.minikafka.common.ProducerRecords;
 import org.ekbana.minikafka.common.Record;
 import org.ekbana.minikafka.common.SegmentMetaData;
 import org.ekbana.minikafka.plugin.policy.Policy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,7 +64,7 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
     @Override
     public void records(ProducerRecords producerRecords) {
         producerRecords.stream().forEach(record -> {
-            activeSegment.addRecord(record);
+            BrokerLogger.producerLogger.debug(" [Inserting data to topic - {}] : {}",topicName,activeSegment.addRecord(record));
             if (!segmentPolicy.validate(activeSegment.getSegmentMetaData())){
                 long offset=topicMetaData.getActiveSegmentMetaData().getCurrentOffset();
                 topicMetaData.setPassiveSegmentMetaData(topicMetaData.getActiveSegmentMetaData());
@@ -78,8 +81,9 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
 
                 SegmentService.registerTask(new SegmentTask(passiveSegment.getSegmentMetaData(),this));
 
-                System.out.println(passiveSegment.getSegmentMetaData());
-                System.out.println(activeSegment.getSegmentMetaData());
+                BrokerLogger.producerLogger.debug(" [Topic : {}] [passive segment metadata : {}] [active segment Metadata : {}]",topicName,passiveSegment.getSegmentMetaData(),activeSegment.getSegmentMetaData());
+//                System.out.println(passiveSegment.getSegmentMetaData());
+//                System.out.println(activeSegment.getSegmentMetaData());
                 // move current active segment to passive segment
 
             }
@@ -141,7 +145,8 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
      * @return records
     **/
     private ConsumerRecords fetchRecords(long offset,boolean isTimeStamp,SegmentMetaData segmentMetaData){
-        System.out.println("\n\nreader : "+segmentMetaData);
+//        System.out.println("\n\nreader : "+segmentMetaData);
+        BrokerLogger.consumerLogger.debug("Topic reader : {}",segmentMetaData);
         ConsumerRecords records=new ConsumerRecords(new ArrayList<>());
         if (segmentMetaData==null) return records;
         Storage<Record> storage=SegmentService.getStorage(kafkaBrokerProperties,topicName,segmentMetaData);
@@ -165,23 +170,27 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
         // TODO :
         // clear the passive segment data
         // update the segment-offset data
-        System.out.println("segment service : " + segmentMetaData);
+//        System.out.println("segment service : " + segmentMetaData);
+        BrokerLogger.brokerLogger.debug(" Adding segment - topic : {}  segment meta data : {} ",topicName,segmentMetaData);
         segmentSearchTree.addSegment(segmentMetaData);
-        System.out.println("\n\n Segment transversal");
+        segmentSearchTree.reEvaluate();
+//        System.out.println("\n\n Segment transversal");
 //        segmentSearchTree.transverse().forEach(System.out::println);
 
-        try {
-//            FileUtil.writeStreamToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.segmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
-            FileUtil.writeStreamToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getSegmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+////            FileUtil.writeStreamToFile(brokerConfig.rootPath()+brokerConfig.dataPath()+topicName+"/"+brokerConfig.segmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
+//            FileUtil.writeStreamToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getSegmentFileName(),segmentSearchTree.transverse(),SegmentMetaData.class);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         // write tree to file
-
+        segmentSearchTree.dumpTreeToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getSegmentFileName());
     }
 
     @Override
     public void onSegmentProcessFail() {
         // notify the failure of  segment movement
     }
+
+
 }

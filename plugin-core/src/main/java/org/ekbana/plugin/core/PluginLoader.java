@@ -3,6 +3,8 @@ package org.ekbana.plugin.core;
 import org.ekbana.minikafka.plugin.Plugin;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.minikafka.plugin.policy.PolicyFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -15,6 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.Objects.requireNonNull;
 
 public class PluginLoader {
+
+    private static final Logger logger= LoggerFactory.getLogger(PluginLoader.class);
     private final Map<String, PolicyFactory<?>> policyFactoryMap=new HashMap<>();
     private final Map<String,LoadBalancerFactory<?,?,?>> loadBalancerFactoryMap=new HashMap<>();
 
@@ -27,7 +31,7 @@ public class PluginLoader {
 
     public void loadPlugins(){
         if (!pluginsDir.exists() || !pluginsDir.isDirectory()) {
-            System.err.println("Skipping Plugin Loading. Plugin dir not found: " + pluginsDir);
+            logger.error("Skipping Plugin Loading. Plugin dir not found: {}" , pluginsDir);
             return;
         }
 
@@ -42,7 +46,7 @@ public class PluginLoader {
     }
 
     private void loadPlugin(final File pluginDir) {
-        System.out.println("Loading plugin: " + pluginDir);
+        logger.info("Loading plugin: {} " , pluginDir);
         final URLClassLoader pluginClassLoader = createPluginClassLoader(pluginDir);
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -62,14 +66,14 @@ public class PluginLoader {
     }
 
     private void installPlugin(final Plugin plugin) {
-        System.out.println("Loading plugin: " + plugin.pluginName()+" : "+plugin.pluginDescription());
+        logger.info("Loading plugin : {} : {} ", plugin.pluginName(),plugin.pluginDescription());
         for (PolicyFactory<?> f : plugin.getPolicyFactories()) {
-            System.out.println("Installing policy : "+f.policyName()+" : "+f.policyType());
+            logger.info("Installing policy : {} : {}",f.policyName(),f.policyType());
             policyFactoryMap.put(f.policyName(), f);
         }
 
         for (LoadBalancerFactory<?,?,?> loadBalancerFactory:plugin.getLoadBalancerFactories()){
-            System.out.println("Installing LoadBalancer : "+loadBalancerFactory.loadBalancerName());
+            logger.info("Installing LoadBalancer : {}",loadBalancerFactory.loadBalancerName());
             loadBalancerFactoryMap.put(loadBalancerFactory.loadBalancerName(), loadBalancerFactory);
         }
     }

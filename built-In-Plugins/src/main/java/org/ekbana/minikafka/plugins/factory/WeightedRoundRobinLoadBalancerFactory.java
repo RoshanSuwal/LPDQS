@@ -13,7 +13,7 @@ public class WeightedRoundRobinLoadBalancerFactory implements LoadBalancerFactor
 
     @Override
     public String loadBalancerName() {
-        return "weighted round robin";
+        return "weighted-round-robin";
     }
 
     @Override

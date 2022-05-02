@@ -141,29 +141,29 @@ public class Kafka {
         kafkaServer.start();
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-//        Kafka kafka=new Kafka();
-//        kafka.load();
-//        kafka.start();
-        KafkaLoader kafkaLoader = new KafkaLoader("plugins");
-        kafkaLoader.load();
-
-        // creation of broker properties and its validation
-        KafkaBrokerProperties kafkaBrokerProperties = new KafkaBrokerProperties(new Properties());
-        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy"), PolicyType.SEGMENT_BATCH_POLICY);
-        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy"), PolicyType.CONSUMER_RECORD_BATCH_POLICY);
-        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy"), PolicyType.SEGMENT_RETENTION_POLICY);
-
-        // creating broker and passing broker properties and policies
-
-        ExecutorService brokerExecutorService=Executors.newFixedThreadPool(10);
-        final Broker broker = new Broker(kafkaBrokerProperties,
-                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy")).buildPolicy(kafkaBrokerProperties),
-                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy")).buildPolicy(kafkaBrokerProperties),
-                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy")).buildPolicy(kafkaBrokerProperties),
-                brokerExecutorService);
-
-        broker.load();
-
-    }
+//    public static void main(String[] args) throws IOException, InterruptedException {
+////        Kafka kafka=new Kafka();
+////        kafka.load();
+////        kafka.start();
+//        KafkaLoader kafkaLoader = new KafkaLoader("plugins");
+//        kafkaLoader.load();
+//
+//        // creation of broker properties and its validation
+//        KafkaBrokerProperties kafkaBrokerProperties = new KafkaBrokerProperties(new Properties());
+//        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy"), PolicyType.SEGMENT_BATCH_POLICY);
+//        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy"), PolicyType.CONSUMER_RECORD_BATCH_POLICY);
+//        kafkaLoader.validatePolicy(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy"), PolicyType.SEGMENT_RETENTION_POLICY);
+//
+//        // creating broker and passing broker properties and policies
+//
+//        ExecutorService brokerExecutorService=Executors.newFixedThreadPool(10);
+//        final Broker broker = new Broker(kafkaBrokerProperties,
+//                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.batch.policy")).buildPolicy(kafkaBrokerProperties),
+//                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.segment.retention.policy")).buildPolicy(kafkaBrokerProperties),
+//                kafkaLoader.getPolicyFactory(kafkaBrokerProperties.getBrokerProperty("kafka.broker.consumer.record.batch.policy")).buildPolicy(kafkaBrokerProperties),
+//                brokerExecutorService);
+//
+//        broker.load();
+//
+//    }
 }

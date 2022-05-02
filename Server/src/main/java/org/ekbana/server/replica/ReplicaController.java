@@ -69,7 +69,7 @@ public class ReplicaController implements Replica {
 
     public void deleteTopic(Topic topic){
         topicMapper.delete(topic.getTopicName());
-        FileUtil.deleteFile(kafkaProperties.getDataPath()+"topic/"+topic.getTopicName()+".txt");
+        FileUtil.deleteFile(kafkaProperties.getRootPath()+"topic/"+topic.getTopicName()+".txt");
     }
 
     public void load(){
@@ -81,7 +81,7 @@ public class ReplicaController implements Replica {
         topicMapper.forEach((key,value)->{
             System.out.println(value.getTopicName());
             try {
-                FileUtil.writeObjectToFile(kafkaProperties.getDataPath()+"topic/"+key+".txt",value);
+                FileUtil.writeObjectToFile(kafkaProperties.getRootPath()+"topic/"+key+".txt",value);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -90,7 +90,7 @@ public class ReplicaController implements Replica {
         consumerGroupMapper.forEach((key,value)->{
             System.out.println(value);
             try {
-                FileUtil.writeObjectToFile(kafkaProperties.getDataPath()+"consumer/"+key+".txt",value);
+                FileUtil.writeObjectToFile(kafkaProperties.getRootPath()+"consumer/"+key+".txt",value);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -99,7 +99,7 @@ public class ReplicaController implements Replica {
 
     private void loadTopic(){
         try{
-            FileUtil.getFiles(kafkaProperties.getDataPath()+"topic/")
+            FileUtil.getFiles(kafkaProperties.getRootPath()+"topic/")
                     .peek(file -> System.out.println(file.getPath()))
                     .forEach(file -> {
                         try {
@@ -117,7 +117,7 @@ public class ReplicaController implements Replica {
 
     private void loadConsumerGroup(){
         try{
-            FileUtil.getFiles(kafkaProperties.getDataPath()+"consumer/")
+            FileUtil.getFiles(kafkaProperties.getRootPath()+"consumer/")
                     .forEach(file -> {
                         try {
                             final Object o = FileUtil.readObjectFromFile(file.getPath());

@@ -11,7 +11,7 @@ public class KafkaBrokerProperties extends Properties {
             "kafka.broker.segment.batch.policy","offset-count-based-segment-batch-policy",
             "kafka.broker.consumer.record.batch.policy","offset-count-based-consumer-records-batch-policy",
             "kafka.broker.segment.retention.policy","time-based-segment-retention-policy",
-            "kafka.broker.root.path","log/",
+            "kafka.storage.data.path","log/",
             "kafka.broker.data.path","data/",
             "kafka.broker.segment.search.tree.node.capacity","3"
     );
@@ -30,11 +30,12 @@ public class KafkaBrokerProperties extends Properties {
     }
 
     public String getDataPath(){
-        return getBrokerProperty("kafka.broker.data.path");
+        return getRootPath()+"data/";
+//        return getBrokerProperty("kafka.broker.data.path");
     }
 
     public String getRootPath(){
-        return getBrokerProperty("kafka.broker.root.path");
+        return getBrokerProperty("kafka.storage.data.path");
     }
 
     public String getSegmentFileName() {

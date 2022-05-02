@@ -27,9 +27,9 @@ public class KafkaClientRequestParser {
                }:new NonParsableRequest();
     }
 
-    public static void main(String[] args) {
-        KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();
-        kafkaClientRequestParser.parse(new Gson().toJson(new AuthRequest()).getBytes());
-        kafkaClientRequestParser.parse(new Gson().toJson(new TopicCreateRequest("test",1)).getBytes());
-    }
+//    public static void main(String[] args) {
+//        KafkaClientRequestParser kafkaClientRequestParser=new KafkaClientRequestParser();
+//        kafkaClientRequestParser.parse(new Gson().toJson(new AuthRequest()).getBytes());
+//        kafkaClientRequestParser.parse(new Gson().toJson(new TopicCreateRequest("test",1)).getBytes());
+//    }
 }

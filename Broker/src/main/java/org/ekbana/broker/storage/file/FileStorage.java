@@ -18,7 +18,7 @@ public class FileStorage<T extends Record> implements Storage<T> {
 
     @Override
     public void store(T t) {
-        System.out.println(t.toString());
+//        System.out.println(t.toString());
         try {
             writeRecordToFile(t);
 //            createAndWriteIntoFile(t.getOffset(), t.getData().getBytes());

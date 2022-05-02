@@ -1,13 +1,17 @@
 package org.ekbana.server.v2.leader;
 
+import org.ekbana.minikafka.common.FileUtil;
 import org.ekbana.minikafka.common.LBRequest;
 import org.ekbana.minikafka.common.Node;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancer;
 import org.ekbana.minikafka.plugin.loadbalancer.LoadBalancerFactory;
 import org.ekbana.server.common.mb.Topic;
 import org.ekbana.server.config.KafkaProperties;
+import org.ekbana.server.util.KafkaLogger;
 import org.ekbana.server.util.Mapper;
 import org.ekbana.server.v2.node.NodeManager;
+
+import java.io.IOException;
 
 public class TopicController {
     private Mapper<String, Topic> topicMapper;
@@ -18,7 +22,7 @@ public class TopicController {
     private NodeManager nodeManager;
 
     public TopicController(KafkaProperties kafkaProperties, NodeManager nodeManager, LoadBalancerFactory loadBalancerFactory) {
-        topicMapper = new Mapper<>();
+        this.topicMapper = new Mapper<>();
         this.loadBalancerFactory = loadBalancerFactory;
         this.topicLoadBalancerMapper = new Mapper<>();
         this.kafkaProperties = kafkaProperties;
@@ -30,16 +34,27 @@ public class TopicController {
     }
 
     public void createTopic(Topic topic) {
+        createTopic(topic, true);
+    }
+
+    public void createTopic(Topic topic, boolean isNew) {
         topicMapper.add(topic.getTopicName(), topic);
         final LoadBalancer<Node, LBRequest> lb = loadBalancerFactory.buildLoadBalancer(kafkaProperties);
         for (Node node : topic.getDataNode()) lb.addNode(node);
         topicLoadBalancerMapper.add(topic.getTopicName(), lb);
-        // save in file
+
+        if (isNew) {
+            KafkaLogger.topicLogger.info("Created topic : {}", topic.getTopicName());
+            saveToFile(topic);
+        } else {
+            KafkaLogger.topicLogger.info("Loaded topic : {}" ,topic.getTopicName());
+        }
     }
 
     public void removeTopic(String topicName) {
         topicMapper.delete(topicName);
         // remove from file
+        removeFromFile(topicName);
     }
 
     public Topic getTopic(String topicName) {
@@ -80,4 +95,38 @@ public class TopicController {
         return -1;
     }
 
+    public void onStart() {
+        // load all topics from file
+        KafkaLogger.topicLogger.info("Loading topics..");
+        try {
+            FileUtil.getFiles(kafkaProperties.getRootPath() + "topic/").forEach(file -> {
+                try {
+                    createTopic((Topic) FileUtil.readObjectFromFile(file.getPath()), false);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void onClose() {
+        // dump all topics to file
+        KafkaLogger.topicLogger.info("Saving topics...");
+        topicMapper.forEach((topicName, topic) -> saveToFile(topic));
+    }
+
+    private void saveToFile(Topic topic) {
+        KafkaLogger.topicLogger.info("Topic Saved : {}", topic);
+        FileUtil.writeObjectToFile(kafkaProperties.getRootPath() + "topic/" + topic.getTopicName() + ".dat", topic);
+    }
+
+    private void removeFromFile(String topicName) {
+        FileUtil.deleteFile(kafkaProperties.getRootPath() + "topic/" + topicName + ".dat");
+        KafkaLogger.topicLogger.info("Topic Removed : {}", topicName);
+    }
 }

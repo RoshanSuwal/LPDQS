@@ -1,5 +1,7 @@
 package org.ekbana.server.common;
 
+import org.ekbana.server.util.KafkaLogger;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -68,16 +70,16 @@ public abstract class ServerSocket<T> {
         final Socket socket = socketChannel.socket();
 
         final SocketAddress remoteSocketAddress = socket.getRemoteSocketAddress();
-        System.out.println("Connected to : "+remoteSocketAddress);
+//        System.out.println("Connected to : "+remoteSocketAddress);
+        KafkaLogger.networkLogger.info("New connection accepted : {} ",remoteSocketAddress);
         // register
-        System.out.println(socket.getPort()+":"+socket.getLocalPort());
+//        System.out.println(socket.getPort()+":"+socket.getLocalPort());
         final KafkaServer.KafkaServerListener portListener = (KafkaServer.KafkaServerListener) getPortListener(socket.getLocalPort());
         final KafkaServer.KafkaServerClient attachment = portListener.createAttachment(socketChannel);
 //        final T attachment = createAttachment(socketChannel);
         portListener.onConnectionCreated(attachment);
 //        onConnectionCreated(attachment);
         socketChannel.register(this.selector,SelectionKey.OP_READ, attachment);
-        // start starting request
     }
 
     private void read(SelectionKey selectionKey) throws IOException {
@@ -112,8 +114,8 @@ public abstract class ServerSocket<T> {
         SocketChannel socketChannel= (SocketChannel) selectionKey.channel();
         Socket socket= socketChannel.socket();
         SocketAddress socketAddress=socket.getRemoteSocketAddress();
-        System.out.println("Connection closed by client : "+socketAddress);
-
+//        System.out.println("Connection closed by client : "+socketAddress);
+        KafkaLogger.networkLogger.info("Connection closed by client : {}",socketAddress);
         //send closing connection callback
 
         socketChannel.close();
@@ -129,7 +131,8 @@ public abstract class ServerSocket<T> {
 
         if (this.selector!=null)this.selector.close();
         if (this.serverSocketChannel!=null)this.serverSocketChannel.close();
-        System.out.println("Server closed");
+//        System.out.println("Server closed");
+        KafkaLogger.networkLogger.info("Server Closed");
     }
 
 //    protected abstract T createAttachment(SocketChannel socketChannel) throws IOException;

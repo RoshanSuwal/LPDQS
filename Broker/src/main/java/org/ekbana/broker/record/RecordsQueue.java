@@ -2,6 +2,7 @@ package org.ekbana.broker.record;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.ekbana.broker.utils.BrokerLogger;
 
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +38,7 @@ public class RecordsQueue<T> {
     }
 
     private void startPolling(){
-        System.out.println("polling started");
+        BrokerLogger.producerLogger.debug("Polling started");
         this.atomicBoolean.set(true);
         T t;
         try {
@@ -47,11 +48,10 @@ public class RecordsQueue<T> {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }finally {
-            System.out.println("polling finished");
+            BrokerLogger.producerLogger.debug("Polling finished");
             this.atomicBoolean.set(false);
         }
-
-        System.out.println("closing thread "+Thread.currentThread().getName());
+        BrokerLogger.brokerLogger.debug("Closing thread {}",Thread.currentThread().getName());
     }
 
     private void process() {

@@ -6,6 +6,7 @@ import org.ekbana.server.common.l.LFRequest;
 import org.ekbana.server.config.KafkaProperties;
 import org.ekbana.server.leader.LeaderClient;
 import org.ekbana.server.leader.LeaderClientState;
+import org.ekbana.server.util.KafkaLogger;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -28,12 +29,12 @@ public class NodeServer implements KafkaServer.KafkaServerListener {
 
     @Override
     public int port() {
-        return 9998;
+        return Integer.parseInt(kafkaProperties.getKafkaProperty("kafka.node.server.port"));
     }
 
     @Override
     public void onStart() {
-        System.out.println("Node server started at port "+port());
+        KafkaLogger.networkLogger.info("Node Server started at port "+port());
     }
 
     @Override
@@ -43,13 +44,13 @@ public class NodeServer implements KafkaServer.KafkaServerListener {
 
     @Override
     public void onConnectionClose(KafkaServer.KafkaServerClient kafkaServerClient) {
-        System.out.println("node connection closed");
+        KafkaLogger.networkLogger.info("Node connection closed");
         nodeController.unRegisterNode((LeaderClient) kafkaServerClient);
     }
 
     @Override
     public void onConnectionCreated(KafkaServer.KafkaServerClient kafkaServerClient) {
-        System.out.println("new node connected");
+        KafkaLogger.networkLogger.info("New Node Connected");
         nodeController.processNodeConfiguration(
                 (LeaderClient) kafkaServerClient,new LFRequest(LFRequest.LFRequestType.NEW)
         );
