@@ -145,9 +145,9 @@ public class KafkaProducer extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-        properties.setProperty("kafka.server.address","10.10.50.162");
+        properties.setProperty("kafka.server.address","localhost");
         properties.setProperty("kafka.server.port","9999");
-        properties.setProperty("kafka.topic.name","tweets2");
+        properties.setProperty("kafka.topic.name","test");
 //        properties.setProperty("kafka.topic.partition","0");
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();

@@ -7,6 +7,9 @@ import org.ekbana.server.common.mb.Transaction;
 import org.ekbana.server.util.KafkaLogger;
 import org.ekbana.server.util.Mapper;
 
+import java.util.Arrays;
+import java.util.List;
+
 @RequiredArgsConstructor
 public class TransactionManager {
     private final Mapper<Long, TransactionHelper> transactionHelperMapper;
@@ -40,5 +43,14 @@ public class TransactionManager {
 
     public boolean readyToCommit(long transactionId){
         return transactionHelperMapper.get(transactionId).isReadyForCommit();
+    }
+
+    /** get the transactions by nodeId*/
+    public List<RequestTransaction> getTransactionRunningInNode(String nodeId){
+        return transactionHelperMapper.getValues()
+                .stream()
+                .map(transactionHelper -> (RequestTransaction)transactionHelper.getObj())
+                .filter(requestTransaction-> Arrays.stream(requestTransaction.getPartitionNodes()).filter(node -> node.getId()==nodeId).toArray().length>0)
+                .toList();
     }
 }

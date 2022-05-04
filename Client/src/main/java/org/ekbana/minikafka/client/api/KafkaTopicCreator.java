@@ -14,7 +14,7 @@ public class KafkaTopicCreator extends KafkaServerClient {
     private ServerState serverState;
 
     public KafkaTopicCreator(Properties properties) {
-        super(properties.getProperty("kafka.server.address", "10.10.50.162"),
+        super(properties.getProperty("kafka.server.address", "localhost"),
                 Integer.parseInt(properties.getProperty("kafka.server.port", "9999")));
         this.properties = properties;
         this.serverState = ServerState.NOT_CONNECTED;
@@ -89,8 +89,8 @@ public class KafkaTopicCreator extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-        properties.setProperty("kafka.topic.name","tweets2");
-        properties.setProperty("kafka.topic.numberOfPartitions","2");
+        properties.setProperty("kafka.topic.name","test");
+        properties.setProperty("kafka.topic.numberOfPartitions","1");
         final KafkaTopicCreator kafkaTopicCreator = new KafkaTopicCreator(properties);
         kafkaTopicCreator.create();
     }

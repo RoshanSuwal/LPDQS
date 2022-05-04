@@ -293,6 +293,8 @@ public class NodeController {
         nodeMapper.delete(leaderClient.getNode().getId());
         nodeManager.unRegisterNode(leaderClient.getNode());
         // remove from cluster, mark as inactive
+        // handle the currently running works in that particular node
+
     }
 
     public void sendToNode(LeaderClient leaderClient, Transaction transaction) {
