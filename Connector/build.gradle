@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.4.1'
+}
+
+group 'org.ekbana'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+bootJar{
+    enabled=true
+}
+
+jar{
+    enabled=true
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+
+    implementation project(":Client")
+
+    implementation 'com.google.code.gson:gson:2.9.0'
+
+    implementation 'org.json:json:20180813'
+
+    implementation 'org.postgresql:postgresql:42.3.5'
+
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
+
+    implementation 'ch.qos.logback:logback-classic:1.2.10'
+
+    implementation 'commons-io:commons-io:2.11.0'
+}
+
+test {
+    useJUnitPlatform()
+}

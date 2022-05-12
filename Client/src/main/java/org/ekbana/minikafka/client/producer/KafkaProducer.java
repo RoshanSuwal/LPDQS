@@ -14,6 +14,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KafkaProducer extends KafkaServerClient {
 
+    public interface ProducerEventListener{
+        void onProducerRecordWriteCompleted();
+        void onProducerConnectionClose();
+        void onProducerConfigurationSuccess();
+    }
+
     private final Properties properties;
     private ServerState serverState;
     private final AtomicBoolean isIdeal;
@@ -23,18 +29,27 @@ public class KafkaProducer extends KafkaServerClient {
 
     private final BlockingDeque<String> blockingDeque;
     private final int batchSize=500;
+    private ProducerEventListener producerEventListener;
 
     // batching of records
 
     public KafkaProducer(Properties properties) {
+        this(properties,null);
+    }
+
+    public KafkaProducer(Properties properties,ProducerEventListener producerEventListener){
         super(properties.getProperty("kafka.server.address","localhost"), Integer.parseInt(properties.getProperty("kafka.server.port","9999")));
         this.properties = properties;
         this.serverState=ServerState.NOT_CONNECTED;
         isIdeal=new AtomicBoolean(true);
         hasProducerRecord=new AtomicBoolean(false);
         stopAfterCompletion=new AtomicBoolean(false);
-
         blockingDeque=new LinkedBlockingDeque<>(10);
+        this.producerEventListener=producerEventListener;
+    }
+
+    public void setEventListener(ProducerEventListener producerEventListener){
+        this.producerEventListener=producerEventListener;
     }
 
     public String  getAuthRequest(){
@@ -120,8 +135,13 @@ public class KafkaProducer extends KafkaServerClient {
         if (readJson.get("responseType").getAsString().equals("SUCCESS")){
             if (requestType==RequestType.NEW_CONNECTION) serverState=ServerState.CONNECTED;
             else if (requestType==RequestType.AUTH) serverState=ServerState.AUTHENTICATED;
-            else if (requestType==RequestType.PRODUCER_CONFIG) serverState=ServerState.CONFIGURED;
-            else if (requestType==RequestType.PRODUCER_RECORD_WRITE) {}
+            else if (requestType==RequestType.PRODUCER_CONFIG) {
+                serverState = ServerState.CONFIGURED;
+                if (producerEventListener!=null)producerEventListener.onProducerConfigurationSuccess();
+            }
+            else if (requestType==RequestType.PRODUCER_RECORD_WRITE) {
+                if (!hasProducerRecord.get()) producerEventListener.onProducerRecordWriteCompleted();
+            }
         }else {
             if (requestType==RequestType.AUTH) serverState=ServerState.CLOSE;
             else if (requestType==RequestType.PRODUCER_CONFIG) serverState=ServerState.CLOSE;
@@ -135,7 +155,8 @@ public class KafkaProducer extends KafkaServerClient {
     @Override
     protected void onClose() {
         System.out.println("connection closed");
-        System.exit(0);
+        if (producerEventListener==null) System.exit(0);
+        else producerEventListener.onProducerConnectionClose();
     }
 
     @Override

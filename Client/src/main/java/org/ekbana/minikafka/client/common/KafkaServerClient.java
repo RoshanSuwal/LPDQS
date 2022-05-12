@@ -27,7 +27,6 @@ public  abstract class KafkaServerClient {
         socketChannel.connect(inetSocketAddress);
         socketChannel.finishConnect();
 
-
         new Thread(()-> {
             try {
                 read();

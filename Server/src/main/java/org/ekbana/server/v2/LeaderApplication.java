@@ -139,7 +139,5 @@ public class LeaderApplication {
 
         topicController.onStart();
         kafkaServer.start();
-
-
     }
 }
