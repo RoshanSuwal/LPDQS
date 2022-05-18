@@ -31,6 +31,8 @@ public class KafkaProducer extends KafkaServerClient {
     private final int batchSize=500;
     private ProducerEventListener producerEventListener;
 
+    private long requestId=0;
+
     // batching of records
 
     public KafkaProducer(Properties properties) {
@@ -87,7 +89,13 @@ public class KafkaProducer extends KafkaServerClient {
         jsonObject.addProperty("key",properties.getProperty("kafka.topic.key",""));
         jsonObject.addProperty("partitionId",Integer.parseInt(properties.getProperty("kafka.topic.partition","-1")));
         jsonObject.add("producerRecords",prepareProduceRecords());
+        jsonObject.addProperty("requestId",getRequestId());
         return jsonObject.toString();
+    }
+
+    private Long getRequestId(){
+        requestId=requestId+1;
+        return requestId;
     }
 
     public void send(String msg){

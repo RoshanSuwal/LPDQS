@@ -9,7 +9,7 @@ import org.ekbana.minikafka.common.Node;
 public class TopicCreateRequestTransaction extends RequestTransaction{
     private int[] partitions;
 
-    public TopicCreateRequestTransaction(long transactionId, TransactionType.Action transactionType, Topic topic, TransactionType.RequestType requestType) {
+    public TopicCreateRequestTransaction( long transactionId, TransactionType.Action transactionType, Topic topic, TransactionType.RequestType requestType) {
         super(transactionId, transactionType, topic, requestType);
     }
 

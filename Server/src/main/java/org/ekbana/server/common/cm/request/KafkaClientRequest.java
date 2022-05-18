@@ -19,6 +19,7 @@ public abstract class KafkaClientRequest implements Serializable {
 
     private final KafkaClientRequest.RequestType requestType;
     private Long clientRequestId;
+    private long requestId=-1;
 
     public KafkaClientRequest(KafkaClientRequest.RequestType requestType) {
         this.requestType = requestType;
@@ -34,5 +35,9 @@ public abstract class KafkaClientRequest implements Serializable {
 
     public void setClientRequestId(Long clientRequestId) {
         this.clientRequestId = clientRequestId;
+    }
+
+    public long getRequestId(){
+        return requestId;
     }
 }

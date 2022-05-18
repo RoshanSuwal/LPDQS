@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Mapper<K,V> {
-    private final Map<K,V> map=new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<K,V> map=new ConcurrentHashMap<>();
     public void add(K k,V v){
         map.put(k,v);
     }

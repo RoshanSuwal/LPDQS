@@ -47,10 +47,11 @@ public class TransactionManager {
 
     /** get the transactions by nodeId*/
     public List<RequestTransaction> getTransactionRunningInNode(String nodeId){
-        return transactionHelperMapper.getValues()
-                .stream()
+        KafkaLogger.nodeLogger.info("fetching the node transactions : {}",nodeId);
+        return transactionHelperMapper.getValues().stream()
+                .peek(transactionHelper -> KafkaLogger.nodeLogger.info("{}",(RequestTransaction)transactionHelper.getObj()))
                 .map(transactionHelper -> (RequestTransaction)transactionHelper.getObj())
-                .filter(requestTransaction-> Arrays.stream(requestTransaction.getPartitionNodes()).filter(node -> node.getId()==nodeId).toArray().length>0)
+                .filter(requestTransaction-> Arrays.stream(requestTransaction.getPartitionNodes()).filter(node -> node.getId().equals(nodeId)).toArray().length>0)
                 .toList();
     }
 }

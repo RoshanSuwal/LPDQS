@@ -37,10 +37,11 @@ public  abstract class KafkaServerClient {
     }
 
     public void write(String  message) throws IOException, InterruptedException {
+        Thread.sleep(500);
         ByteBuffer buffer=ByteBuffer.wrap(message.getBytes());
         socketChannel.write(buffer);
         onSend(message);
-        Thread.sleep(200);
+        Thread.sleep(500);
         buffer.clear();
     }
 
@@ -58,6 +59,7 @@ public  abstract class KafkaServerClient {
             }
             buffer.flip();
         }
+        System.out.println("read thread closed");
         close();
     }
 

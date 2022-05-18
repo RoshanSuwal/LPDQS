@@ -3,7 +3,6 @@ package org.ekbana.server.v2;
 import ch.qos.logback.classic.util.ContextInitializer;
 import org.ekbana.minikafka.common.FileUtil;
 import org.ekbana.server.util.KafkaLogger;
-import org.ekbana.server.v2.common.KafkaRouter;
 
 import java.io.IOException;
 

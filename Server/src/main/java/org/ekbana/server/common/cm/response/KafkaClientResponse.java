@@ -12,6 +12,7 @@ public abstract class KafkaClientResponse implements Serializable {
     }
 
     private final Long clientResponseId;
+    private long requestId;
     private final KafkaClientRequest.RequestType requestType;
     private final KafkaClientResponse.ResponseType responseType;
 
@@ -32,4 +33,7 @@ public abstract class KafkaClientResponse implements Serializable {
     public Long getClientResponseId() {
         return clientResponseId;
     }
+
+    public Long getRequestId(){return requestId;}
+    public void setRequestId(long requestId){ this.requestId=requestId;}
 }

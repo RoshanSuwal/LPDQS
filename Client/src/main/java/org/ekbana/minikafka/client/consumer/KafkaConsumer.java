@@ -23,13 +23,17 @@ public class KafkaConsumer extends KafkaServerClient {
 
     private JsonObject topicJson;
     private Map<Integer, Boolean> partitionRequestStatus;
-    private Map<Integer, String> partitionRequest;
+    private Map<Integer, JsonObject> partitionRequest;
 
     private BlockingDeque<String> requestQueue;
-    private BlockingDeque<String> readRequestQueue;
+    private BlockingDeque<JsonObject> readRequestQueue;
     private BlockingDeque<JsonObject> consumerRecordsQueue;
 
     private AtomicBoolean isRequesting;
+
+    private long requestId=0;
+
+    private Map<Long,JsonObject> requestMapper;
 
     public KafkaConsumer(Properties properties) {
         super(properties.getProperty("kafka.server.address", "localhost"), Integer.parseInt(properties.getProperty("kafka.server.port", "9999")));
@@ -40,36 +44,37 @@ public class KafkaConsumer extends KafkaServerClient {
         readRequestQueue=new LinkedBlockingDeque<>();
         consumerRecordsQueue = new LinkedBlockingDeque<>(10);
         isRequesting=new AtomicBoolean(false);
+        requestMapper=new HashMap<>();
     }
 
-    public String getAuthRequest() {
+    public JsonObject getAuthRequest() {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("requestType", String.valueOf(RequestType.AUTH));
         jsonObject.addProperty("username", properties.getProperty("kafka.auth.username", "user"));
         jsonObject.addProperty("password", properties.getProperty("kafka.auth.password", "password"));
 
-        return jsonObject.toString();
+        return jsonObject;
     }
 
-    public String getConsumerConfigurationRequest() {
+    public JsonObject getConsumerConfigurationRequest() {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("requestType", String.valueOf(RequestType.CONSUMER_CONFIG));
         jsonObject.addProperty("topicName", properties.getProperty("kafka.topic.name"));
         jsonObject.addProperty("groupName", properties.getProperty("kafka.consumer.group", "0"));
-        return jsonObject.toString();
+        return jsonObject;
     }
 
-    public String getCommitOffsetRequest(int partitionId, long offset) {
+    public JsonObject getCommitOffsetRequest(int partitionId, long offset) {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("requestType", String.valueOf(RequestType.CONSUMER_OFFSET_COMMIT));
         jsonObject.addProperty("topicName", properties.getProperty("kafka.topic.name"));
         jsonObject.addProperty("groupName", properties.getProperty("kafka.consumer.group", "0"));
         jsonObject.addProperty("partitionId", partitionId);
         jsonObject.addProperty("offset", offset);
-        return jsonObject.toString();
+        return jsonObject;
     }
 
-    public String getConsumerRecordReadRequest(int partitionId, long offset, boolean isTimeOffset) {
+    public JsonObject getConsumerRecordReadRequest(int partitionId, long offset, boolean isTimeOffset) {
         final JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("requestType", String.valueOf(RequestType.CONSUMER_RECORD_READ));
         jsonObject.addProperty("topicName", properties.getProperty("kafka.topic.name"));
@@ -77,10 +82,15 @@ public class KafkaConsumer extends KafkaServerClient {
         jsonObject.addProperty("partitionId", partitionId);
         jsonObject.addProperty("offset", offset);
         jsonObject.addProperty("isTimeOffset", isTimeOffset);
-        return jsonObject.toString();
+        return jsonObject;
     }
 
-    private void sendRecordReadRequestToServer(int partitionId, String readRecordRequest) {
+    private long getRequestId(){
+        requestId=requestId+1;
+        return requestId;
+    }
+
+    private void sendRecordReadRequestToServer(int partitionId, JsonObject readRecordRequest) {
         // has internal queue of request
         partitionRequestStatus.put(partitionId, true);
         partitionRequest.put(partitionId, readRecordRequest);
@@ -88,12 +98,17 @@ public class KafkaConsumer extends KafkaServerClient {
 //        sendToServer(readRecordRequest);
     }
 
-    private String getReadRequest() {
+    private JsonObject getReadRequest() {
         return readRequestQueue.pollFirst();
     }
 
-    private void sendToServer(String request) {
-        if (request!=null) requestQueue.add(request);
+    private void sendToServer(JsonObject request) {
+        if (request!=null){
+            requestId=requestId+1;
+            request.addProperty("requestId",requestId);
+            requestMapper.put(requestId,request);
+            requestQueue.add(request.toString());
+        }
         if (!isRequesting.get()) {
             final String polledRequest = requestQueue.poll();
             try {
@@ -138,6 +153,7 @@ public class KafkaConsumer extends KafkaServerClient {
         System.out.println(readData);
         final JsonObject readJson = new Gson().fromJson(readData, JsonObject.class);
         final RequestType requestType = RequestType.valueOf(readJson.get("requestType").getAsString());
+        final long requestId=readJson.get("requestId").getAsLong();
         if (readJson.get("responseType").getAsString().equals("SUCCESS")) {
             if (requestType == RequestType.NEW_CONNECTION) {
                 serverState = ServerState.CONNECTED;
@@ -175,9 +191,15 @@ public class KafkaConsumer extends KafkaServerClient {
             }
         } else {
             if (requestType == RequestType.AUTH) serverState = ServerState.CLOSE;
-            else if (requestType == RequestType.PRODUCER_CONFIG) serverState = ServerState.CLOSE;
-            else if (requestType == RequestType.CONSUMER_RECORD_READ) serverState = ServerState.CLOSE;
+            else if (requestType == RequestType.CONSUMER_CONFIG) serverState = ServerState.CLOSE;
+            else if (requestType == RequestType.CONSUMER_RECORD_READ){
+                final JsonObject jsonObject = requestMapper.get(requestId);
+                System.out.println("failed response : "+jsonObject);
+                sendRecordReadRequestToServer(jsonObject.get("partitionId").getAsInt(),jsonObject);
+                sendNextRequestToServer();
+            }
         }
+        requestMapper.remove(requestId);
 
     }
 
@@ -223,6 +245,7 @@ public class KafkaConsumer extends KafkaServerClient {
 
         while (true){
             final JsonObject records = kafkaConsumer.getRecords();
+            kafkaConsumer.sendNextRequestToServer();
             System.out.println("read records : "+records);
             Thread.sleep(1000);
         }

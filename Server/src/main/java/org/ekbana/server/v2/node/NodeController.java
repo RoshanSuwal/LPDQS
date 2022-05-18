@@ -55,6 +55,7 @@ public class NodeController {
 //        System.out.println(kafkaClientRequest + "\n" + topic);
         KafkaLogger.nodeLogger.info("processing request - topic : {} Request : {}",topic,kafkaClientRequest);
         final Long generateTransactionId = Generator.generateTransactionId();
+        nodeTransactionAndClientRequestMapper.add(generateTransactionId, kafkaClientRequest.getClientRequestId());
         switch (kafkaClientRequest.getRequestType()) {
             case TOPIC_CREATE -> {
                 registerTransaction(new TopicCreateRequestTransaction(
@@ -98,11 +99,9 @@ public class NodeController {
                 ));
             }
             default -> {
-
+                nodeTransactionAndClientRequestMapper.delete(generateTransactionId);
             }
         }
-        nodeTransactionAndClientRequestMapper.add(generateTransactionId, kafkaClientRequest.getClientRequestId());
-
     }
 
     public void registerTransaction(Transaction transaction) {
@@ -137,7 +136,9 @@ public class NodeController {
 //                    }
 //
 //                } else {
-                if (((RequestTransaction) transaction).getPartitionNodes() == null) {
+                if (((RequestTransaction) transaction).getPartitionNodes() == null ||
+                        Arrays.stream(((RequestTransaction) transaction).getPartitionNodes())
+                        .filter(node -> !nodeManager.hasNode(node)).findAny().isPresent()) {
                     router.routeToClient(
                             new BaseResponse(
                                     nodeTransactionAndClientRequestMapper.get(transaction.getTransactionId()),
@@ -189,7 +190,7 @@ public class NodeController {
                 }
             }
             case ABORT -> {
-                Arrays.stream(((RequestTransaction) transaction).getPartitionNodes()).collect(Collectors.toSet()).forEach(
+                Arrays.stream(((RequestTransaction) transactionManager.getTransaction(transaction.getTransactionId())).getPartitionNodes()).collect(Collectors.toSet()).forEach(
                         node -> {
                             sendToNode(nodeMapper.get(node.getId()), transaction);
                         }
@@ -198,7 +199,7 @@ public class NodeController {
                 router.routeToClient(
                         new BaseResponse(
                                 nodeTransactionAndClientRequestMapper.get(transaction.getTransactionId()),
-                                convertTransactionTypeToRequestType(((RequestTransaction) transaction).getRequestType()),
+                                convertTransactionTypeToRequestType(((RequestTransaction) transactionManager.getTransaction(transaction.getTransactionId())).getRequestType()),
                                 KafkaClientResponse.ResponseType.FAIL,
                                 "Fail"
                         )
@@ -294,12 +295,15 @@ public class NodeController {
         nodeManager.unRegisterNode(leaderClient.getNode());
         // remove from cluster, mark as inactive
         // handle the currently running works in that particular node
+        transactionManager.getTransactionRunningInNode(leaderClient.getNode().getId())
+                .stream().peek(requestTransaction -> KafkaLogger.nodeLogger.info("Aborting Transaction with id : {} due to node failure",requestTransaction.getTransactionId()))
+                .forEach(requestTransaction -> transactionQueueProcessor.push(new AbortRequestTransaction(requestTransaction.getTransactionId()), true));
 
     }
 
     public void sendToNode(LeaderClient leaderClient, Transaction transaction) {
         try {
-            leaderClient.send(serializer.serialize(transaction));
+            if (leaderClient!=null) leaderClient.send(serializer.serialize(transaction));
         } catch (IOException e) {
             e.printStackTrace();
         }

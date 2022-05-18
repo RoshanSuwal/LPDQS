@@ -319,7 +319,8 @@ public class LeaderController {
                 // partition policy -
                 // send request to each node
                 // create create topic request transaction
-                final TopicCreateRequestTransaction topicCreateRequestTransaction = new TopicCreateRequestTransaction(TransactionIdGenerator.getTransactionId(),
+                final TopicCreateRequestTransaction topicCreateRequestTransaction = new TopicCreateRequestTransaction(
+                        TransactionIdGenerator.getTransactionId(),
                         TransactionType.Action.REGISTER,
                         newTopic,
                         TransactionType.RequestType.TOPIC_PARTITION_CREATE);

@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutorService;
 public class KafkaClientController {
     // controls the client
     // Mapper to store client request id and clientId
-    private Mapper<Long,KafkaClient> clientRequestMapper;
+    private Mapper<Long,KafkaClientRequestMapper> clientRequestMapper;
 
     private KafkaClientRequestParser kafkaClientRequestParser;
 
@@ -36,7 +36,7 @@ public class KafkaClientController {
     public void request(KafkaClient kafkaClient,KafkaClientRequest kafkaClientRequest){
         final KafkaClientRequest processedRequest = ClientProcessor.processRequest(kafkaClient, kafkaClientRequest);
         KafkaLogger.clientLogger.debug("{}",processedRequest);
-        clientRequestMapper.add(processedRequest.getClientRequestId(), kafkaClient);
+        clientRequestMapper.add(processedRequest.getClientRequestId(), new KafkaClientRequestMapper(kafkaClient, kafkaClientRequest.getRequestId()));
         // route request to leader for further procession
         kafkaRouter.routeToLeader(processedRequest);
     }
@@ -49,11 +49,13 @@ public class KafkaClientController {
     public void sendToClient(KafkaClientResponse kafkaClientResponse){
         KafkaLogger.clientLogger.debug("{}",kafkaClientResponse);
         if (clientRequestMapper.has(kafkaClientResponse.getClientResponseId())){
-            clientRequestMapper.get(kafkaClientResponse.getClientResponseId())
-                    .send(ClientProcessor.processResponse(clientRequestMapper.get(kafkaClientResponse.getClientResponseId()),kafkaClientResponse));
+            final KafkaClientRequestMapper kafkaClientRequestMapper = clientRequestMapper.get(kafkaClientResponse.getClientResponseId());
+            kafkaClientResponse.setRequestId(kafkaClientRequestMapper.getRequestId());
+            kafkaClientRequestMapper.getKafkaClient()
+                    .send(ClientProcessor.processResponse(kafkaClientRequestMapper.getKafkaClient(),kafkaClientResponse));
         }
-
         clientRequestMapper.delete(kafkaClientResponse.getClientResponseId());
+        KafkaLogger.clientLogger.debug("{}",kafkaClientResponse);
     }
 
     private static class IdGenerator{
@@ -123,13 +125,32 @@ public class KafkaClientController {
                     case CONFIGURING_CONSUMER -> kafkaClient.setKafkaClientState(KafkaClientState.CONFIGURED_CONSUMER);
                 }
             }else {
-                if (kafkaClient.getKafkaClientState()!= KafkaClientState.CONFIGURED_CONSUMER ||
+                if (kafkaClient.getKafkaClientState()!= KafkaClientState.CONFIGURED_CONSUMER &&
                         kafkaClient.getKafkaClientState()!= KafkaClientState.CONFIGURED_PRODUCER){
                     kafkaClient.setKafkaClientState(KafkaClientState.CLOSE);
+                    System.out.println("close client state");
                 }
             }
 
             return kafkaClientResponse;
+        }
+    }
+
+    private static class KafkaClientRequestMapper{
+
+        private final KafkaClient kafkaClient;
+        private final long requestId;
+        public KafkaClientRequestMapper(KafkaClient kafkaClient,long requestId){
+            this.kafkaClient=kafkaClient;
+            this.requestId=requestId;
+        }
+
+        public KafkaClient getKafkaClient() {
+            return kafkaClient;
+        }
+
+        public long getRequestId() {
+            return requestId;
         }
     }
 }
