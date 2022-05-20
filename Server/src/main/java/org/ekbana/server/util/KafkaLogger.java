@@ -14,7 +14,6 @@ public class KafkaLogger {
 
     public static Logger networkLogger=LoggerFactory.getLogger("Network");
 
-    public static Logger dataNodeLogger=LoggerFactory.getLogger("Data Node");
+    public static Logger dataNodeLogger=LoggerFactory.getLogger("DataNode");
 
-    public static Logger brokerLogger=LoggerFactory.getLogger("Broker");
 }

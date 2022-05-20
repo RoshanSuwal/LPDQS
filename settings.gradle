@@ -7,4 +7,5 @@ include 'common'
 include 'plugin-core'
 include 'built-In-Plugins'
 include 'Connector'
+include 'RetentionService'
 

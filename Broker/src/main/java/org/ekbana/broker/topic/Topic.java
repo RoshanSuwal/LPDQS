@@ -85,7 +85,7 @@ public class Topic {
 //                        .forEach(smd->segmentSearchTree.addSegment((SegmentMetaData) smd));
                 FileUtil.readAllLines(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath() +topicName+"/"+kafkaBrokerProperties.getSegmentFileName(), SegmentMetaData.class)
                         .forEach(smd->segmentSearchTree.addSegment((SegmentMetaData) smd));
-                segmentSearchTree.reEvaluate();
+//                segmentSearchTree.reEvaluate();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -126,6 +126,8 @@ public class Topic {
     public void saveToDisk(){
         BrokerLogger.brokerLogger.info("[Saving to disk] - topic : {}",topicName);
         recorder.updateTopicMetaData();
+        segmentSearchTree.evaluateNodeAvailabilityStatus();
+        segmentSearchTree.removeUnAvailableNodes();
         segmentSearchTree.dumpTreeToFile(kafkaBrokerProperties.getRootPath()+kafkaBrokerProperties.getDataPath()+topicName+"/"+kafkaBrokerProperties.getSegmentFileName());
     }
 }

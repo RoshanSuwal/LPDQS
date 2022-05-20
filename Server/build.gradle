@@ -45,4 +45,14 @@ dependencies {
 
     implementation 'ch.qos.logback:logback-classic:1.2.10'
 
+    implementation 'org.quartz-scheduler:quartz:2.3.0'
+
 }
+
+task copyToLib(type: Copy) {
+//    from configurations.localDeps
+    from configurations.runtimeClasspath
+    into "$buildDir/output/lib"
+}
+build.dependsOn(copyToLib)
+//jar.dependsOn(copyToLib)

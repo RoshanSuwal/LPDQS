@@ -173,7 +173,7 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
 //        System.out.println("segment service : " + segmentMetaData);
         BrokerLogger.brokerLogger.debug(" Adding segment - topic : {}  segment meta data : {} ",topicName,segmentMetaData);
         segmentSearchTree.addSegment(segmentMetaData);
-        segmentSearchTree.reEvaluate();
+//        segmentSearchTree.reEvaluate();
 //        System.out.println("\n\n Segment transversal");
 //        segmentSearchTree.transverse().forEach(System.out::println);
 

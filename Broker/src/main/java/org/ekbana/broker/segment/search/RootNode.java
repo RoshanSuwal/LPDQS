@@ -1,6 +1,7 @@
 package org.ekbana.broker.segment.search;
 
 import org.ekbana.broker.utils.BrokerLogger;
+import org.ekbana.broker.utils.KafkaBrokerProperties;
 import org.ekbana.minikafka.common.SegmentMetaData;
 import org.ekbana.minikafka.plugin.policy.Policy;
 import org.slf4j.Logger;
@@ -25,14 +26,15 @@ public class RootNode {
         internalNodes.add(internalNode);
     }
 
-    public void addLeaf(Node node,Leaf leaf) {
+    public void addLeaf(Node node, Leaf leaf) {
         if (!internalNode.hasCapacity(n)) {
             // add new internal node
             internalNode = new InternalNode();
             nodes.add(node);
             internalNodes.add(internalNode);
+        } else {
+            internalNode.addLeaf(node, leaf);
         }
-        internalNode.addLeaf(node,leaf);
     }
 
     public SegmentMetaData search(long offset, boolean isTimeStamp, Policy<SegmentMetaData> policy) {
@@ -53,6 +55,19 @@ public class RootNode {
         return internalNode.search(offset, isTimeStamp, policy);
     }
 
+    public SegmentMetaData search(long offset, boolean isTimeStamp) {
+        int i = 0;
+        while (nodes.size() > i) {
+            if (nodes.get(i).getStatus().get()) {
+                if (nodes.get(i).contain(offset, isTimeStamp)) {
+                    return internalNodes.get(i).search(offset, isTimeStamp);
+                }
+            }
+            i = i + 1;
+        }
+        return internalNode.search(offset, isTimeStamp);
+    }
+
     public void print() {
         for (int i = 0; i < nodes.size(); i++) {
             internalNodes.get(i).print();
@@ -61,13 +76,54 @@ public class RootNode {
         internalNode.print();
     }
 
+    public void evaluateNodeAvailabilityStatus(Policy<SegmentMetaData> policy) {
+        BrokerLogger.searchTreeLogger.debug("root node count : {}", nodes.size());
+        if (nodes.size() > 0) {
+            for (int i = 0; i < nodes.size(); i++) {
+                if (nodes.get(i).getStatus().getPlain()) {
+                    BrokerLogger.searchTreeLogger.info("root node validate : {} : {}", i, nodes.get(0).getSegmentMetaData());
+                    if (!policy.validate(nodes.get(i).getSegmentMetaData())) {
+                        BrokerLogger.searchTreeLogger.info("root node {} validation result {}", i, false);
+                        nodes.get(i).setStatus(false);
+                        internalNodes.get(internalNodes.size() - 1).evaluateNodeAvailabilityStatus(policy);
+                    } else {
+                        return;
+                    }
+//                    if (policy.validate(nodes.get(i).getSegmentMetaData())) {
+//                        internalNodes.get(i).evaluateNodeAvailabilityStatus(policy);
+//                        break;
+//                    } else {
+//                        nodes.get(i).setStatus(false);
+//                        BrokerLogger.searchTreeLogger.info("root node status set to false : {}",nodes.get(i).getSegmentMetaData());
+//                        if (nodes.size()==i+1)internalNodes.get(i+1).evaluateNodeAvailabilityStatus(policy);
+//                    }
+                }
+            }
+        }
+        internalNode.evaluateNodeAvailabilityStatus(policy);
+    }
+
+    public void removeUnAvailableNodes() {
+        if (nodes.size() > 0) {
+            BrokerLogger.searchTreeLogger.info("node status : {}", nodes.get(0).getStatus().getPlain());
+            if (!nodes.get(0).getStatus().getPlain()) {
+                BrokerLogger.searchTreeLogger.debug("Removing root internal node : {}", nodes.get(0));
+                nodes.remove(0);
+                internalNodes.remove(0);
+                removeUnAvailableNodes();
+            }
+        }
+
+        internalNode.removeUnAvailableNodes();
+    }
+
     public void reEvaluate(Policy<SegmentMetaData> policy) {
-        if (nodes.size()>0) {
+        if (nodes.size() > 0) {
             if (policy.validate(nodes.get(0).getSegmentMetaData())) {
                 internalNodes.get(0).reEvaluate(policy);
             } else {
 //                System.out.println("removing : "+nodes.get(0));
-                BrokerLogger.searchTreeLogger.debug("Removing Root Node : {}",nodes.get(0));
+                BrokerLogger.searchTreeLogger.debug("Removing Root Node : {}", nodes.get(0));
                 internalNodes.remove(0);
                 nodes.remove(0);
                 reEvaluate(policy);
@@ -75,7 +131,7 @@ public class RootNode {
         }
     }
 
-    public Stream<SegmentMetaData> transverse(){
+    public Stream<SegmentMetaData> transverse() {
         return internalNodes.stream()
                 .flatMap(InternalNode::transverse);
     }
@@ -115,9 +171,9 @@ public class RootNode {
 //
 //    }
 
-    public static void sleep(long time){
+    public static void sleep(long time) {
         try {
-            Thread.sleep(time*1000);
+            Thread.sleep(time * 1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

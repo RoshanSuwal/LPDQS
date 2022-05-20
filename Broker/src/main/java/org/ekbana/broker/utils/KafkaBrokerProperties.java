@@ -13,7 +13,9 @@ public class KafkaBrokerProperties extends Properties {
             "kafka.broker.segment.retention.policy","time-based-segment-retention-policy",
             "kafka.storage.data.path","log/",
             "kafka.broker.data.path","data/",
-            "kafka.broker.segment.search.tree.node.capacity","3"
+            "kafka.broker.segment.search.tree.node.capacity","3",
+            "kafka.server.reconnect.interval","10000",
+            "kafka.broker.schedule.interval","60"
     );
 
     public KafkaBrokerProperties(String filePath) throws IOException {
@@ -30,8 +32,8 @@ public class KafkaBrokerProperties extends Properties {
     }
 
     public String getDataPath(){
-        return getRootPath()+"data/";
-//        return getBrokerProperty("kafka.broker.data.path");
+//        return getRootPath()+"data/";
+        return getBrokerProperty("kafka.broker.data.path");
     }
 
     public String getRootPath(){

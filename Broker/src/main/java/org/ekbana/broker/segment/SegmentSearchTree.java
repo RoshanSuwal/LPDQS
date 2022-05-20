@@ -27,7 +27,7 @@ public class SegmentSearchTree {
     public void addSegment(SegmentMetaData segmentMetaData){
         rootNode.addLeaf(
                 createNode(segmentMetaData),
-                new Leaf(segmentMetaData)
+                new Leaf(segmentMetaData,createNode(segmentMetaData))
         );
         // update segment retention policy criteria value if needed
     }
@@ -42,7 +42,8 @@ public class SegmentSearchTree {
 
     public SegmentMetaData searchSegment(long searchValue, boolean isTimeStamp){
 //        if (segmentRetentionPolicy!=null)segmentRetentionPolicy.setCompareWith(Instant.now().toEpochMilli());
-        return rootNode.search(searchValue,isTimeStamp,segmentRetentionPolicy);
+//        return rootNode.search(searchValue,isTimeStamp,segmentRetentionPolicy);
+        return rootNode.search(searchValue,isTimeStamp);
     }
 
     public void reEvaluate(){
@@ -51,8 +52,22 @@ public class SegmentSearchTree {
             BrokerLogger.searchTreeLogger.debug("Segment Search Tree : Re-evaluation started..");
             rootNode.reEvaluate(segmentRetentionPolicy);
             BrokerLogger.searchTreeLogger.debug("Segment Search Tree : Re-evaluation ended..");
-
         }
+    }
+
+    public void evaluateNodeAvailabilityStatus(){
+        if (segmentRetentionPolicy!=null){
+            BrokerLogger.searchTreeLogger.debug("Evaluation of Node Availability Status Started...");
+            rootNode.evaluateNodeAvailabilityStatus(segmentRetentionPolicy);
+            BrokerLogger.searchTreeLogger.debug("Evaluation of Node Availability Status Ended..");
+        }
+    }
+
+    public void removeUnAvailableNodes(){
+        BrokerLogger.searchTreeLogger.debug("Removing Unavailable Status Started...");
+        rootNode.removeUnAvailableNodes();
+        BrokerLogger.searchTreeLogger.debug("Removing Unavailable ended...");
+
     }
 
     public List<SegmentMetaData> transverse(){

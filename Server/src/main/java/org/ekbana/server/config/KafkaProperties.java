@@ -16,7 +16,8 @@ public class KafkaProperties extends Properties {
             "kafka.server.node.id","node-0",
             "kafka.storage.data.path","log/",
             "kafka.request.queue.size","100",
-            "kafka.loadbalancer.policy","weighted-round-robin"
+            "kafka.loadbalancer.policy","weighted-round-robin",
+            "kafka.server.reconnect.interval","10000"
             );
 
     public KafkaProperties(String filePath) throws IOException {
