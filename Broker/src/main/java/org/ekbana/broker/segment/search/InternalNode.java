@@ -20,6 +20,7 @@ public class InternalNode {
     }
 
     public void addLeaf(Node node, Leaf leaf) {
+        BrokerLogger.searchTreeLogger.info("add : {} : \n {}", node.getSegmentMetaData(), leaf.getSegmentMetaData());
         if (nodes.size() < leaves.size()) {
             nodes.add(node);
         }
@@ -39,22 +40,36 @@ public class InternalNode {
     }
 
     public SegmentMetaData search(long offset, boolean isTimeStamp, Policy<SegmentMetaData> policy) {
-        int i=0;
-        while (nodes.size()>i){
-            if (nodes.get(i).getStatus().getPlain() && policy!=null && !policy.validate(nodes.get(i).getSegmentMetaData())){
+        int i = 0;
+        while (nodes.size() > i) {
+            if (nodes.get(i).getStatus().getPlain() && policy != null && !policy.validate(nodes.get(i).getSegmentMetaData())) {
                 nodes.get(i).setStatus(false);
 //                nodes.remove(i);
 //                leaves.remove(i);
-            }else if (nodes.get(i).getStatus().getPlain()){
-                if (nodes.get(i).contain(offset,isTimeStamp)){
-                    return leaves.get(i).search(offset,isTimeStamp);
+            } else if (nodes.get(i).getStatus().getPlain()) {
+                if (nodes.get(i).contain(offset, isTimeStamp)) {
+                    return leaves.get(i).search(offset, isTimeStamp);
                 }
             }
-            i=i+1;
+            i = i + 1;
         }
-        return leaves.size()==0
-                ?null
-                :leaves.get(leaves.size() - 1).search(offset, isTimeStamp);
+        return leaves.size() == 0
+                ? null
+                : leaves.get(leaves.size() - 1).search(offset, isTimeStamp);
+//        return null;
+    }
+
+    public SegmentMetaData search(long offset, boolean isTimeStamp) {
+        int i = 0;
+        while (nodes.size() > i) {
+            if (nodes.get(i).getStatus().get()) {
+                if (nodes.get(i).contain(offset, isTimeStamp)) {
+                    return leaves.get(i).search(offset, isTimeStamp);
+                }
+            }
+            i = i + 1;
+        }
+        return leaves.size() == 0 ? null : leaves.get(leaves.size() - 1).search(offset, isTimeStamp);
     }
 
     public void print() {
@@ -65,10 +80,40 @@ public class InternalNode {
         leaves.get(leaves.size() - 1).print();
     }
 
+
+    public void evaluateNodeAvailabilityStatus(Policy<SegmentMetaData> policy) {
+        BrokerLogger.searchTreeLogger.debug("internal nodes count : {}", nodes.size());
+        if (nodes.size() > 0) {
+            for (int i = 0; i < nodes.size(); i++) {
+                BrokerLogger.searchTreeLogger.info("internal node validate : {} : {}", i, nodes.get(i).getSegmentMetaData());
+                if (nodes.get(i).getStatus().getPlain()) {
+                    if (!policy.validate(nodes.get(i).getSegmentMetaData())) {
+                        BrokerLogger.searchTreeLogger.info("internal node availability : {} ,{}", i, false);
+                        nodes.get(i).setStatus(false);
+                        leaves.get(leaves.size() - 1).evaluateLeafAvailabilityStatus(policy);
+                    } else {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    public void removeUnAvailableNodes() {
+        if (nodes.size() > 0) {
+            if (!nodes.get(0).getStatus().get()) {
+                BrokerLogger.searchTreeLogger.debug("Removing internal node : {}", nodes.get(0));
+                nodes.remove(0);
+                leaves.remove(0);
+                removeUnAvailableNodes();
+            }
+        }
+    }
+
     public void reEvaluate(Policy<SegmentMetaData> policy) {
-        if (nodes.size()>0){
-            if (!policy.validate(nodes.get(0).getSegmentMetaData())){
-                BrokerLogger.searchTreeLogger.debug("Removing internal node : {}",nodes.get(0));
+        if (nodes.size() > 0) {
+            if (!policy.validate(nodes.get(0).getSegmentMetaData())) {
+                BrokerLogger.searchTreeLogger.debug("Removing internal node : {}", nodes.get(0));
                 nodes.remove(0);
                 leaves.remove(0);
                 reEvaluate(policy);
@@ -76,7 +121,7 @@ public class InternalNode {
         }
     }
 
-    public Stream<SegmentMetaData> transverse(){
+    public Stream<SegmentMetaData> transverse() {
         return leaves.stream().map(Leaf::transverse);
     }
 }

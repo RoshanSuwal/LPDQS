@@ -3,11 +3,12 @@ package org.ekbana.server.v2;
 import ch.qos.logback.classic.util.ContextInitializer;
 import org.ekbana.minikafka.common.FileUtil;
 import org.ekbana.server.util.KafkaLogger;
+import org.quartz.SchedulerException;
 
 import java.io.IOException;
 
 public class KafkaApplication {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, SchedulerException {
         final String mode = System.getProperty("mode");
         System.out.println("mode : "+mode);
         if (mode!=null){

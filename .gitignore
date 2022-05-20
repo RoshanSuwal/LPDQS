@@ -14,5 +14,9 @@ Server/src/main/java/org/ekbana/server/transaction
 Server/src/main/java/org/ekbana/server/MiniKafka.java
 log
 log2
+*.pid
+*.log
+connector-config/
+bin/
 
 

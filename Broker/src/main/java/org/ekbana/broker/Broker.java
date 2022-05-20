@@ -113,6 +113,10 @@ public class Broker {
 
     public void onStop(){
         terminate();
+        saveAllTopicToDisk();
+    }
+
+    public void saveAllTopicToDisk(){
         topicHashMap.values().forEach(topic -> topic.saveToDisk());
     }
 

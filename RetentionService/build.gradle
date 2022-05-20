@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.4.1'
+}
+
+group 'org.ekbana.bigdata'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+bootJar{
+//    manifest {
+//        attributes 'Main-Class' : 'org.ekbana.server.v2.KafkaApplication'
+//    }
+    enabled=true
+}
+
+jar{
+    enabled=true
+}
+dependencies {
+//    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+//    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+
+    implementation project(':common')
+    implementation 'ch.qos.logback:logback-classic:1.2.10'
+    implementation 'org.quartz-scheduler:quartz:2.3.0'
+}

@@ -1,6 +1,7 @@
 package org.ekbana.server.common;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -19,11 +20,13 @@ public abstract class ClientSocket {
         socketChannel.configureBlocking(false);
         onStart(socketChannel);
 
-        if (executorService==null){
-            new Thread(this::read).start();
-        }else {
-            executorService.execute(this::read);
-        }
+//        if (executorService==null){
+//            new Thread(this::read).start();
+//        }else {
+//            executorService.execute(this::read);
+//        }
+
+        read();
     }
 
     public void write(byte[] bytes) throws IOException {
@@ -33,7 +36,7 @@ public abstract class ClientSocket {
         byteBuffer.clear();
     }
 
-    private void read(){
+    private void read() throws ConnectException {
         try {
             while (socketChannel.isConnected()) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(1024*64);
@@ -59,16 +62,18 @@ public abstract class ClientSocket {
         }finally {
             close();
         }
+
+        throw new ConnectException("socket connection closed");
     }
 
     public void close(){
-        onClose();
         try {
             socketChannel.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.exit(0);
+        onClose();
+//        System.exit(0);
     }
 
     protected abstract void onStart(SocketChannel socketChannel);

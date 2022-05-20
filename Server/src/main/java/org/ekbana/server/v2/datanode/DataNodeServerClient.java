@@ -46,6 +46,7 @@ public class DataNodeServerClient extends ClientSocket{
     @Override
     protected void onClose() {
         KafkaLogger.networkLogger.info("Data Node Connection Closed");
+        // reconnect attempt
     }
 
     @Override

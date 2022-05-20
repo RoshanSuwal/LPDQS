@@ -6,4 +6,5 @@ include 'plugin-api'
 include 'common'
 include 'plugin-core'
 include 'built-In-Plugins'
+include 'RetentionService'
 
