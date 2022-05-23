@@ -133,7 +133,9 @@ public class LeaderApplication {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("shutdown hook called");
+            System.out.println("Closing the leader application...");
             topicController.onClose();
+            System.out.println("Leader Application Closed Successfully");
 
         }));
 

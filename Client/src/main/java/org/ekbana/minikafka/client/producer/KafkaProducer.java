@@ -148,7 +148,7 @@ public class KafkaProducer extends KafkaServerClient {
                 if (producerEventListener!=null)producerEventListener.onProducerConfigurationSuccess();
             }
             else if (requestType==RequestType.PRODUCER_RECORD_WRITE) {
-                if (!hasProducerRecord.get()) producerEventListener.onProducerRecordWriteCompleted();
+                if (!hasProducerRecord.get()) if (producerEventListener!=null)producerEventListener.onProducerRecordWriteCompleted();
             }
         }else {
             if (requestType==RequestType.AUTH) serverState=ServerState.CLOSE;
@@ -181,7 +181,7 @@ public class KafkaProducer extends KafkaServerClient {
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();
 
-        for (int i=0;i<10;i++) {
+        for (int i=0;i<7;i++) {
             kafkaProducer.send("hello world");
             kafkaProducer.send("second message");
         }
