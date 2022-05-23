@@ -72,7 +72,7 @@ public class LeaderApplication {
             FileUtil.createDirectory(kafkaProperties.getRootPath()+"topic/");
         }
 
-        KafkaLoader kafkaLoader = new KafkaLoader("plugins");
+        KafkaLoader kafkaLoader = new KafkaLoader(kafkaProperties.getKafkaProperty("kafka.plugin.dir.path"));
         kafkaLoader.load();
 
         Serializer serializer = new Serializer();

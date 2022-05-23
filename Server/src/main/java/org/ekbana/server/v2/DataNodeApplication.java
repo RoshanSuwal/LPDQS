@@ -30,6 +30,7 @@ public class DataNodeApplication {
         KafkaLogger.nodeLogger.info("Running as Data Node");
 
         final String configPath = System.getProperty("config");
+        final String nodeId=System.getProperty("nodeId");
 //        if (!FileUtil.exists(configPath)) {
 //            KafkaLogger.leaderLogger.error("Config-path : [{}] does not exists ", configPath);
 //            System.exit(0);
@@ -51,6 +52,30 @@ public class DataNodeApplication {
             kafkaBrokerProperties = new KafkaBrokerProperties(configPath + "/kafka.properties");
         }
 
+        if (!FileUtil.exists(kafkaProperties.getRootPath())){
+            KafkaLogger.kafkaLogger.error("Root directory : [{}]  does not exists",kafkaProperties.getRootPath());
+            System.exit(0);
+        }
+
+        if (!FileUtil.exists(kafkaProperties.getRootPath()+"data/")){
+            KafkaLogger.kafkaLogger.info("Creating Directory :{} ",kafkaProperties.getRootPath()+"data/");
+            FileUtil.createDirectory(kafkaProperties.getRootPath()+"data/");
+        }
+        if (!FileUtil.exists(kafkaProperties.getRootPath()+"consumer/")){
+            KafkaLogger.kafkaLogger.info("Creating Directory :{} ",kafkaProperties.getRootPath()+"consumer/");
+            FileUtil.createDirectory(kafkaProperties.getRootPath()+"consumer/");
+        }
+
+        if (!FileUtil.exists(kafkaProperties.getRootPath()+"topic/")){
+            KafkaLogger.kafkaLogger.info("Creating Directory :{} ",kafkaProperties.getRootPath()+"topic/");
+            FileUtil.createDirectory(kafkaProperties.getRootPath()+"topic/");
+        }
+
+        if (nodeId!=null){
+            kafkaProperties.setProperty("kafka.server.node.id",nodeId);
+            kafkaBrokerProperties.setProperty("kafka.server.node.id",nodeId);
+        }
+
 //        if (!FileUtil.exists(configPath+"broker.properties")){
 //            final Properties brokerProperties = new Properties();
 //            brokerProperties.setProperty("kafka.broker.root.path","log/");
@@ -64,7 +89,7 @@ public class DataNodeApplication {
         ExecutorService brokerExecutorService = Executors.newFixedThreadPool(10);
         ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-        KafkaLoader kafkaLoader = new KafkaLoader("plugins");
+        KafkaLoader kafkaLoader = new KafkaLoader(kafkaBrokerProperties.getBrokerProperty("kafka.plugin.dir.path"));
         kafkaLoader.load();
 
         Broker broker = new Broker(kafkaBrokerProperties,

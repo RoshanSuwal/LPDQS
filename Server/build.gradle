@@ -28,6 +28,7 @@ jar{
 
 dependencies {
     implementation 'com.google.code.gson:gson:2.9.0'
+    implementation 'org.json:json:20180813'
 
     implementation 'org.projectlombok:lombok:1.18.16'
     implementation 'org.junit.jupiter:junit-jupiter:5.4.2'

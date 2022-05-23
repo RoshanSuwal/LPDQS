@@ -11,13 +11,14 @@ public class KafkaProperties extends Properties {
             "kafka.server.address","localhost",
             "kafka.node.server.port","9998",
             "kafka.client.server.port","9999",
-            "kafka.security.auth.username","username",
-            "kafka.security.auth.password","password",
+//            "kafka.security.auth.username","username",
+//            "kafka.security.auth.password","password",
             "kafka.server.node.id","node-0",
             "kafka.storage.data.path","log/",
             "kafka.request.queue.size","100",
             "kafka.loadbalancer.policy","weighted-round-robin",
-            "kafka.server.reconnect.interval","10000"
+            "kafka.server.reconnect.interval","10000",
+            "kafka.plugin.dir.path","plugins"
             );
 
     public KafkaProperties(String filePath) throws IOException {

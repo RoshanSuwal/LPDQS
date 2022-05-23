@@ -15,7 +15,8 @@ public class KafkaBrokerProperties extends Properties {
             "kafka.broker.data.path","data/",
             "kafka.broker.segment.search.tree.node.capacity","3",
             "kafka.server.reconnect.interval","10000",
-            "kafka.broker.schedule.interval","60"
+            "kafka.broker.schedule.interval","60",
+            "kafka.plugin.dir.path","plugins"
     );
 
     public KafkaBrokerProperties(String filePath) throws IOException {

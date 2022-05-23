@@ -18,6 +18,6 @@ log2
 *.pid
 *.log
 connector-config/
-bin/
-
+output/
+output
 
