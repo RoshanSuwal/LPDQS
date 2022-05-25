@@ -1,6 +1,7 @@
 package org.ekbana.server.v2.datanode;
 
 import org.ekbana.broker.Broker;
+import org.ekbana.broker.consumer.Consumer;
 import org.ekbana.minikafka.common.Node;
 import org.ekbana.minikafka.common.Record;
 import org.ekbana.server.common.l.LFRequest;
@@ -135,16 +136,25 @@ public class DataNodeController {
             }
             case CONSUMER_RECORD_READ -> {
                 final ConsumerRecordReadRequestTransaction consumerRecordReadRequestTransaction = (ConsumerRecordReadRequestTransaction) requestTransaction;
-                final org.ekbana.minikafka.common.ConsumerRecords records = broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(), consumerRecordReadRequestTransaction.getPartition())
-                        .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
+                final Consumer consumer = broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(), consumerRecordReadRequestTransaction.getPartition());
+                if (consumer==null){
+                    transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
+                            consumerRecordReadRequestTransaction.getTransactionId(),
+                            TransactionType.Action.SUCCESS,
+                            null
+                    ), false);
+                }else {
+                    final org.ekbana.minikafka.common.ConsumerRecords records = consumer
+                            .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
 
-                final ConsumerRecords consumerRecords = new ConsumerRecords(consumerRecordReadRequestTransaction.getPartition(), records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
+                    final ConsumerRecords consumerRecords = new ConsumerRecords(consumerRecordReadRequestTransaction.getPartition(), records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
 //                System.out.println(consumerRecords);
-                transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
-                        consumerRecordReadRequestTransaction.getTransactionId(),
-                        TransactionType.Action.SUCCESS,
-                        consumerRecords
-                ), false);
+                    transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
+                            consumerRecordReadRequestTransaction.getTransactionId(),
+                            TransactionType.Action.SUCCESS,
+                            consumerRecords
+                    ), false);
+                }
             }
             default -> {
 

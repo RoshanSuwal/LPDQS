@@ -74,7 +74,7 @@ RDMS Sink Connector consumes the records from the Kafka topic and insert into th
 #### Sink Configuration
 ```JSON
 {
-  "connectorName": "test source connector",
+  "connectorName": "test sink connector",
   "connectorType": "sink",
   "jdbcDriver": "org.postgresql.Driver",
   "jdbcUrl": "jdbc:postgresql://localhost:5432/rad",

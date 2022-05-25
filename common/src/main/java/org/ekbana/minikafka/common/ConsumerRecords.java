@@ -32,6 +32,7 @@ public class ConsumerRecords {
     }
 
     public void addRecord(Record record){
+        if(record==null) return;
         this.records.add(record);
         size=size+record.size();
 

@@ -20,4 +20,5 @@ log2
 connector-config/
 output/
 output
+*.yml
 

@@ -239,13 +239,15 @@ public class KafkaConsumer extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Properties properties = new Properties();
-        properties.setProperty("kafka.topic.name", "test");
+        properties.setProperty("kafka.topic.name", "testtopic");
+        properties.setProperty("kafka.server.address","10.10.5.30");
+        properties.setProperty("kafka.server.port","31491");
         KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);
         kafkaConsumer.connect();
 
         while (true){
             final JsonObject records = kafkaConsumer.getRecords();
-            kafkaConsumer.sendNextRequestToServer();
+//            kafkaConsumer.sendNextRequestToServer();
             System.out.println("read records : "+records);
             Thread.sleep(1000);
         }

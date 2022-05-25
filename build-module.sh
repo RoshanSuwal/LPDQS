@@ -13,6 +13,17 @@ echo "JAVA_HOME = $JAVA_HOME"
 echo "GRADLE_HOME = $GRADLE_HOME"
 echo "DEST_DIR = $DEST_DIR"
 
+if [[ "$JAVA_HOME" ]];then
+  version=$("$JAVA_HOME/bin/java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+  if [[ "$version" > "16.0.0" ]] && [[ "$version" < "17.0.0" ]]
+   then
+     echo "$version"
+    else
+      echo "java version must be greater than 16 but provide $version"
+      exit
+  fi
+fi
+
 if [ -z "$DEST_DIR" ]
 then
   echo "please specify output directory"
@@ -77,16 +88,6 @@ if [[ ! -d "$DEST_DIR/consumer" ]]
    mkdir "${DEST_DIR}/consumer"
 fi
 
-if [[ "$JAVA_HOME" ]];then
-  version=$("$JAVA_HOME/bin/java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
-  if [[ "$version" > "16.0.0" ]] && [[ "$version" < "17.0.0" ]]
-   then
-     echo "$version"
-    else
-      echo "java version must be greater than 16 but provide $version"
-      exit
-  fi
-fi
 
 #exit
 echo "Building Plugin Api"
@@ -102,6 +103,20 @@ echo "Building Connector"
 $GRADLE_HOME -Dorg.gradle.java.home=$JAVA_HOME Connector:bootJar
 echo "Building Client"
 $GRADLE_HOME -Dorg.gradle.java.home=$JAVA_HOME Client:jar
+
+#echo "Building Plugin Api"
+#gradle plugin-api:jar
+#gradle plugin-core:jar
+#
+#echo "Building Server"
+#gradle Server:bootJar
+#gradle Server:copyToLib
+#echo "Building RetentionService"
+#gradle RetentionService:bootJar
+#echo "Building Connector"
+#gradle Connector:bootJar
+#echo "Building Client"
+#gradle Client:jar
 
 ## copy jar to specific directory
 cp ./plugin-api/build/libs/*.jar "$DEST_DIR/jars"

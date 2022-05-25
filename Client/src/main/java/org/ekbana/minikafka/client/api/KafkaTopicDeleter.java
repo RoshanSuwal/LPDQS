@@ -46,7 +46,8 @@ public class KafkaTopicDeleter extends KafkaServerClient {
 
     private void sendToServer() {
         try {
-            if (serverState == KafkaServerClient.ServerState.CONNECTED) write(getAuthRequest());
+//            if (serverState == KafkaServerClient.ServerState.CONNECTED) write(getAuthRequest());
+            if (serverState == KafkaServerClient.ServerState.CONNECTED) write(getTopicDeleteRequest());
             else if (serverState == KafkaServerClient.ServerState.AUTHENTICATED) write(getTopicDeleteRequest());
             else if (serverState == KafkaServerClient.ServerState.CLOSE) close();
         } catch (InterruptedException | IOException e) {
@@ -85,8 +86,10 @@ public class KafkaTopicDeleter extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-        properties.setProperty("kafka.topic.name","tweets");
-        properties.setProperty("kafka.topic.numberOfPartitions","2");
+        properties.setProperty("kafka.server.address","10.10.5.30");
+        properties.setProperty("kafka.server.port","31491");
+        properties.setProperty("kafka.topic.name","test");
+//        properties.setProperty("kafka.topic.numberOfPartitions","2");
         final KafkaTopicDeleter kafkaTopicDeleter = new KafkaTopicDeleter(properties);
         kafkaTopicDeleter.delete();
     }

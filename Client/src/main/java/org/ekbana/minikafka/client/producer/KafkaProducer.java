@@ -174,16 +174,23 @@ public class KafkaProducer extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-        properties.setProperty("kafka.server.address","localhost");
-        properties.setProperty("kafka.server.port","9999");
-        properties.setProperty("kafka.topic.name","test");
+//        properties.setProperty("kafka.server.address","localhost");
+//        properties.setProperty("kafka.server.port","9999");
+        properties.setProperty("kafka.server.address","10.10.5.30");
+        properties.setProperty("kafka.server.port","31491");
+        properties.setProperty("kafka.topic.name","testtopic");
 //        properties.setProperty("kafka.topic.partition","0");
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();
 
-        for (int i=0;i<7;i++) {
+        for (int i=0;i<20;i++) {
             kafkaProducer.send("hello world");
             kafkaProducer.send("second message");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 //        System.exit(0);
         kafkaProducer.stopAfterCompletion();
