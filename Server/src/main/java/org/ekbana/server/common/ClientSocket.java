@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 public abstract class ClientSocket {
     private final InetSocketAddress inetSocketAddress;
     private SocketChannel socketChannel;
+    private int BUFFER_SIZE=Integer.parseInt(System.getProperty("bufferSize","1048576"));
 
     public ClientSocket(String address,int port){
         this.inetSocketAddress=new InetSocketAddress(address,port);
@@ -39,7 +40,7 @@ public abstract class ClientSocket {
     private void read() throws ConnectException {
         try {
             while (socketChannel.isConnected()) {
-                ByteBuffer byteBuffer = ByteBuffer.allocate(1024*64);
+                ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
                 final int readByteCount = socketChannel.read(byteBuffer);
                 byteBuffer.flip();
                 if (readByteCount == -1) {

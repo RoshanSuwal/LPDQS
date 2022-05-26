@@ -16,6 +16,7 @@ public  abstract class KafkaServerClient {
 
     private final InetSocketAddress inetSocketAddress;
     private SocketChannel socketChannel;
+    private int BUFFER_SIZE=Integer.parseInt(System.getProperty("bufferSize","1048576"));
 
     public KafkaServerClient(String address,int port) {
         inetSocketAddress=new InetSocketAddress(address,port);
@@ -34,20 +35,26 @@ public  abstract class KafkaServerClient {
                 e.printStackTrace();
             }
         }).start();
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void write(String  message) throws IOException, InterruptedException {
-        Thread.sleep(500);
+//        Thread.sleep(100);
         ByteBuffer buffer=ByteBuffer.wrap(message.getBytes());
         socketChannel.write(buffer);
         onSend(message);
-        Thread.sleep(500);
         buffer.clear();
+        Thread.sleep(200);
     }
 
     private void read() throws IOException {
         while (socketChannel.isConnected()) {
-            ByteBuffer buffer = ByteBuffer.allocate(128*1024);// fixed size
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);// fixed size
             final int read = socketChannel.read(buffer);
             if (read==-1){
                 break;

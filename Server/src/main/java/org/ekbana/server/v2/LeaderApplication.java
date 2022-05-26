@@ -53,6 +53,8 @@ public class LeaderApplication {
             kafkaProperties = new KafkaProperties(configPath + "/kafka.properties");
         }
 
+        System.setProperty("bufferSize",kafkaProperties.getKafkaProperty("kafka.socket.buffer.size"));
+
         if (!FileUtil.exists(kafkaProperties.getRootPath())){
             KafkaLogger.kafkaLogger.error("Root directory : [{}]  does not exists",kafkaProperties.getRootPath());
             System.exit(0);

@@ -18,7 +18,8 @@ public class KafkaProperties extends Properties {
             "kafka.request.queue.size","100",
             "kafka.loadbalancer.policy","weighted-round-robin",
             "kafka.server.reconnect.interval","10000",
-            "kafka.plugin.dir.path","plugins"
+            "kafka.plugin.dir.path","plugins",
+            "kafka.socket.buffer.size","1048576"
             );
 
     public KafkaProperties(String filePath) throws IOException {

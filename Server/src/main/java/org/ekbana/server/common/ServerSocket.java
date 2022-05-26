@@ -19,6 +19,7 @@ public abstract class ServerSocket<T> {
     private ServerSocketChannel serverSocketChannel;
 
     private final AtomicBoolean alive;
+    private int BUFFER_SIZE=Integer.parseInt(System.getProperty("bufferSize","1048576"));
 
     protected ServerSocket( ) {
         this.alive = new AtomicBoolean(true);
@@ -87,7 +88,7 @@ public abstract class ServerSocket<T> {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         final KafkaServer.KafkaServerListener portListener = (KafkaServer.KafkaServerListener) getPortListener(socketChannel.socket().getLocalPort());
         try {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(1024 * 64);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
             int numRead = -1;
             numRead = socketChannel.read(byteBuffer);
             byteBuffer.flip();

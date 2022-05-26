@@ -28,7 +28,9 @@ public class KafkaProducer extends KafkaServerClient {
     private final AtomicBoolean stopAfterCompletion;
 
     private final BlockingDeque<String> blockingDeque;
-    private final int batchSize=500;
+
+    private final int BUFFER_SIZE=Integer.parseInt(System.getProperty("bufferSize","1048576"));
+    private final int batchSize= (int) (BUFFER_SIZE*0.9);
     private ProducerEventListener producerEventListener;
 
     private long requestId=0;
@@ -74,9 +76,14 @@ public class KafkaProducer extends KafkaServerClient {
         final JsonArray jsonElements = new JsonArray();
         int recordSize=0;
         while (blockingDeque.size()>0 && recordSize < batchSize ) {
-            final String poll = blockingDeque.poll();
-            jsonElements.add(poll);
-            recordSize=poll.length();
+            final String peekFirst = blockingDeque.peekFirst();
+            if (peekFirst!=null && recordSize+peekFirst.length()>=batchSize){
+                break;
+            }else {
+                final String poll = blockingDeque.poll();
+                jsonElements.add(poll);
+                recordSize = poll.length();
+            }
         }
         if (blockingDeque.size()==0) hasProducerRecord.set(false);
         return jsonElements;
@@ -183,7 +190,7 @@ public class KafkaProducer extends KafkaServerClient {
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();
 
-        for (int i=0;i<20;i++) {
+        for (int i=0;i<2;i++) {
             kafkaProducer.send("hello world");
             kafkaProducer.send("second message");
             try {

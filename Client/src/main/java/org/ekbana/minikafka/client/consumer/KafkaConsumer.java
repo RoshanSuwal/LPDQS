@@ -30,6 +30,7 @@ public class KafkaConsumer extends KafkaServerClient {
     private BlockingDeque<JsonObject> consumerRecordsQueue;
 
     private AtomicBoolean isRequesting;
+    private AtomicBoolean isSendToServerThreadStarted;
 
     private long requestId=0;
 
@@ -40,6 +41,7 @@ public class KafkaConsumer extends KafkaServerClient {
         this.properties = properties;
         this.serverState = ServerState.NOT_CONNECTED;
         this.stopAfterCompletion = new AtomicBoolean(true);
+        this.isSendToServerThreadStarted=new AtomicBoolean(false);
         requestQueue = new LinkedBlockingDeque<>(10);
         readRequestQueue=new LinkedBlockingDeque<>();
         consumerRecordsQueue = new LinkedBlockingDeque<>(10);
@@ -94,14 +96,35 @@ public class KafkaConsumer extends KafkaServerClient {
         // has internal queue of request
         partitionRequestStatus.put(partitionId, true);
         partitionRequest.put(partitionId, readRecordRequest);
+//        System.out.println("added records to record queue : "+readRequestQueue.size());
         readRequestQueue.add(readRecordRequest);
 //        sendToServer(readRecordRequest);
+//        System.out.println("added records to record queue : "+readRequestQueue.size());
+
     }
 
     private JsonObject getReadRequest() {
         return readRequestQueue.pollFirst();
     }
 
+    private void fetch(){
+        while (true){
+            if (!isRequesting.get()) {
+                final String polledRequest = requestQueue.poll();
+                try {
+                    isRequesting.set(true);
+                    if (polledRequest != null) {
+                        write(polledRequest);
+                    }
+                } catch (InterruptedException | IOException e) {
+                    e.printStackTrace();
+                    isRequesting.set(false);
+                    serverState = ServerState.CLOSE;
+                    close();
+                }
+            }
+        }
+    }
     private void sendToServer(JsonObject request) {
         if (request!=null){
             requestId=requestId+1;
@@ -109,18 +132,51 @@ public class KafkaConsumer extends KafkaServerClient {
             requestMapper.put(requestId,request);
             requestQueue.add(request.toString());
         }
-        if (!isRequesting.get()) {
-            final String polledRequest = requestQueue.poll();
-            try {
-                isRequesting.set(true);
-                if (polledRequest != null) {
-                    write(polledRequest);
+
+        if (!isSendToServerThreadStarted.get()){
+            new Thread(()->sendToServerBack()).start();
+            isSendToServerThreadStarted.set(true);
+        }
+//        if (!isRequesting.get()) {
+//            System.out.println("polling from request queue :"+requestQueue.size());
+//            final String polledRequest = requestQueue.poll();
+//            try {
+//                isRequesting.set(true);
+//                if (polledRequest != null) {
+//                    write(polledRequest);
+//                }
+//            } catch (InterruptedException | IOException e) {
+//                e.printStackTrace();
+//                isRequesting.set(false);
+//                serverState = ServerState.CLOSE;
+//                close();
+//            }
+//        }
+    }
+
+    private void sendToServerBack(){
+        System.out.println("backend server thread started");
+        while (true){
+            if (!isRequesting.get()) {
+//                System.out.println("polling from request queue :"+requestQueue.size());
+                final String polledRequest = requestQueue.poll();
+                try {
+                    isRequesting.set(true);
+                    if (polledRequest != null) {
+                        write(polledRequest);
+                    }
+                } catch (InterruptedException | IOException e) {
+                    e.printStackTrace();
+                    isRequesting.set(false);
+                    serverState = ServerState.CLOSE;
+                    close();
                 }
-            } catch (InterruptedException | IOException e) {
-                e.printStackTrace();
-                isRequesting.set(false);
-                serverState = ServerState.CLOSE;
-                close();
+            }
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -204,8 +260,10 @@ public class KafkaConsumer extends KafkaServerClient {
     }
 
     private void sendNextRequestToServer() {
-        if (consumerRecordsQueue.remainingCapacity() > 0)
+        if (consumerRecordsQueue.remainingCapacity() > 0) {
+//            System.out.println("sending to server");
             sendToServer(getReadRequest());
+        }
     }
 
     public void sendOffsetCommitRequest(int partitionId, long offset) {
@@ -215,7 +273,16 @@ public class KafkaConsumer extends KafkaServerClient {
     }
 
     public JsonObject getRecords() throws InterruptedException {
-        System.out.println("getting records by consumer");
+//        System.out.println("getting records by consumer");
+
+//        System.out.println("consumer record queue : "+consumerRecordsQueue.remainingCapacity());
+//        System.out.println("read request record queue : "+readRequestQueue.size());
+        if (consumerRecordsQueue.size()<=0) {
+//            System.out.println("sending next request to server");
+            sendNextRequestToServer();
+        }
+
+        Thread.sleep(1000);
         final JsonObject take = consumerRecordsQueue.take();
         System.out.println("records size after read : "+readRequestQueue.size());
         if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
