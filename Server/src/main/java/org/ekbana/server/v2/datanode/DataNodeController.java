@@ -27,6 +27,7 @@ public class DataNodeController {
     private Broker broker;
     private KafkaProperties kafkaProperties;
     private DataNodeServerClient dataNodeServerClient;
+    private final ExecutorService executorService;
 
     Receiver<byte[]> receiver = new Receiver<>() {
         @Override
@@ -57,6 +58,7 @@ public class DataNodeController {
         this.broker = broker;
         this.kafkaProperties = kafkaProperties;
         this.dataNodeServerClient = dataNodeServerClient;
+        this.executorService = executorService;
         dataNodeServerClient.setReceiver(receiver);
         transactionMapper = new Mapper<>();
         requestTransactionQueueProcessor = new QueueProcessor<>(100, this::executeTransaction, executorService);
@@ -64,7 +66,7 @@ public class DataNodeController {
     }
 
     public void processTransaction(Transaction transaction) {
-        KafkaLogger.transactionLogger.info("{} : {}","processing",transaction);
+        KafkaLogger.transactionLogger.info("{} : {}", "processing", transaction);
         switch (transaction.getAction()) {
             case REGISTER -> {
                 transactionMapper.add(transaction.getTransactionId(), (RequestTransaction) transaction);
@@ -84,22 +86,22 @@ public class DataNodeController {
     }
 
     public void processNode(LFResponse lfResponse) {
-        KafkaLogger.dataNodeLogger.info("{} : {}","Configuring node",lfResponse);
+        KafkaLogger.dataNodeLogger.info("{} : {}", "Configuring node", lfResponse);
         if (lfResponse.getLfResponseType() == LFResponse.LFResponseType.CONNECTED) {
             dataNodeServerClient.setNodeState(DataNodeServerClient.NodeState.CONNECTED);
-            transactionResponseQueueProcessor.push(new LFRequest(kafkaProperties.getKafkaProperty("kafka.server.node.id"), LFRequest.LFRequestType.CONFIGURE),true);
+            transactionResponseQueueProcessor.push(new LFRequest(kafkaProperties.getKafkaProperty("kafka.server.node.id"), LFRequest.LFRequestType.CONFIGURE), true);
         } else if (lfResponse.getLfResponseType() == LFResponse.LFResponseType.CONFIGURED) {
             dataNodeServerClient.setNodeState(DataNodeServerClient.NodeState.CONFIGURED);
-        }else {
+        } else {
             dataNodeServerClient.setNodeState(DataNodeServerClient.NodeState.CLOSED);
             dataNodeServerClient.close();
         }
     }
 
     public void sendToLeader(Object obj) {
-        KafkaLogger.nodeLogger.info("[Response to leader] {}",obj);
+        KafkaLogger.nodeLogger.info("[Response to leader] {}", obj);
         try {
-            if (obj instanceof LFRequest || dataNodeServerClient.getNodeState()== DataNodeServerClient.NodeState.CONFIGURED) {
+            if (obj instanceof LFRequest || dataNodeServerClient.getNodeState() == DataNodeServerClient.NodeState.CONFIGURED) {
                 dataNodeServerClient.write(serializer.serialize(obj));
                 Thread.sleep(100);
             }
@@ -109,7 +111,7 @@ public class DataNodeController {
     }
 
     public void executeTransaction(RequestTransaction requestTransaction) {
-        KafkaLogger.transactionLogger.info("{} : {}","executing",requestTransaction);
+        KafkaLogger.transactionLogger.info("{} : {}", "executing", requestTransaction);
         switch (requestTransaction.getRequestType()) {
             case TOPIC_PARTITION_CREATE -> {
                 final TopicCreateRequestTransaction topicCreateRequestTransaction = (TopicCreateRequestTransaction) requestTransaction;
@@ -135,26 +137,29 @@ public class DataNodeController {
                 broker.getProducer(producerRecordWriteRequestTransaction.getTopic().getTopicName(), producerRecordWriteRequestTransaction.getPartition()).addRecords(new org.ekbana.minikafka.common.ProducerRecords(collect));
             }
             case CONSUMER_RECORD_READ -> {
-                final ConsumerRecordReadRequestTransaction consumerRecordReadRequestTransaction = (ConsumerRecordReadRequestTransaction) requestTransaction;
-                final Consumer consumer = broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(), consumerRecordReadRequestTransaction.getPartition());
-                if (consumer==null){
-                    transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
-                            consumerRecordReadRequestTransaction.getTransactionId(),
-                            TransactionType.Action.SUCCESS,
-                            null
-                    ), false);
-                }else {
-                    final org.ekbana.minikafka.common.ConsumerRecords records = consumer
-                            .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
+                executorService.execute(() -> {
+                    KafkaLogger.transactionLogger.info("executing consumer read in thread : {}",requestTransaction);
+                    final ConsumerRecordReadRequestTransaction consumerRecordReadRequestTransaction = (ConsumerRecordReadRequestTransaction) requestTransaction;
+                    final Consumer consumer = broker.getConsumer(consumerRecordReadRequestTransaction.getTopic().getTopicName(), consumerRecordReadRequestTransaction.getPartition());
+                    if (consumer == null) {
+                        transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
+                                consumerRecordReadRequestTransaction.getTransactionId(),
+                                TransactionType.Action.SUCCESS,
+                                null
+                        ), false);
+                    } else {
+                        final org.ekbana.minikafka.common.ConsumerRecords records = consumer
+                                .getRecords(consumerRecordReadRequestTransaction.getOffset(), consumerRecordReadRequestTransaction.isTimeOffset());
 
-                    final ConsumerRecords consumerRecords = new ConsumerRecords(consumerRecordReadRequestTransaction.getPartition(), records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
+                        final ConsumerRecords consumerRecords = new ConsumerRecords(consumerRecordReadRequestTransaction.getPartition(), records.count(), records.getStartingOffset(), records.getEndingOffset(), records.stream().map(Record::getData).collect(Collectors.toList()));
 //                System.out.println(consumerRecords);
-                    transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
-                            consumerRecordReadRequestTransaction.getTransactionId(),
-                            TransactionType.Action.SUCCESS,
-                            consumerRecords
-                    ), false);
-                }
+                        transactionResponseQueueProcessor.push(new ConsumerRecordReadResponseTransaction(
+                                consumerRecordReadRequestTransaction.getTransactionId(),
+                                TransactionType.Action.SUCCESS,
+                                consumerRecords
+                        ), false);
+                    }
+                });
             }
             default -> {
 

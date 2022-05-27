@@ -114,7 +114,7 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
 
         if ((offset>=activeSegment.getSegmentMetaData().getCurrentOffset() && isTimeOffset)
             ||(offset>activeSegment.getSegmentMetaData().getCurrentTimeStamp() && isTimeOffset)){
-            return null;
+            return new ConsumerRecords(new ArrayList<>());
         }else {
             if (topicMetaData.getActiveSegmentMetaData().getOffsetCount()>0
                     && ((offset>=topicMetaData.getActiveSegmentMetaData().getStartingOffset() && !isTimeOffset)
@@ -128,9 +128,12 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
                 return fetchRecords(offset,isTimeOffset,topicMetaData.getPassiveSegmentMetaData());
             }else {
                 final SegmentMetaData segmentMetaData = segmentSearchTree.searchSegment(offset, isTimeOffset);
+//                return segmentMetaData!=null
+//                        ?fetchRecords(offset,isTimeOffset,segmentMetaData)
+//                        : fetchRecords()
                 return segmentMetaData==null
                         ? (passiveSegment != null
-                            ? fetchRecords(offset, isTimeOffset, topicMetaData.getActiveSegmentMetaData())
+                            ? fetchRecords(offset, isTimeOffset, topicMetaData.getPassiveSegmentMetaData())
                             : fetchRecords(offset, isTimeOffset, topicMetaData.getActiveSegmentMetaData()))
                         :fetchRecords(offset,isTimeOffset, segmentMetaData);
             }
@@ -139,7 +142,7 @@ public class Recorder implements RecordsCallback<ProducerRecords>, SegmentCallba
 
     /**
     * fetch records
-    * @param offset                 offset from which record is be fetched
+    * @param offset                 offset from which record is fetched
      * @param isTimeStamp           determine the type of offset
      * @param segmentMetaData       information about segment from which record is to be fetched
      * @return records

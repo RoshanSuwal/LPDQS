@@ -1,6 +1,7 @@
 package org.ekbana.minikafka.client.consumer;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.ekbana.minikafka.client.common.KafkaServerClient;
 import org.ekbana.minikafka.client.common.RequestType;
@@ -96,8 +97,9 @@ public class KafkaConsumer extends KafkaServerClient {
         // has internal queue of request
         partitionRequestStatus.put(partitionId, true);
         partitionRequest.put(partitionId, readRecordRequest);
-//        System.out.println("added records to record queue : "+readRequestQueue.size());
         readRequestQueue.add(readRecordRequest);
+        System.out.println("[Read Request Queue] after adding : size : "+readRequestQueue.size());
+        System.out.println("[Read Request Queue]"+readRecordRequest.toString());
 //        sendToServer(readRecordRequest);
 //        System.out.println("added records to record queue : "+readRequestQueue.size());
 
@@ -127,6 +129,7 @@ public class KafkaConsumer extends KafkaServerClient {
     }
     private void sendToServer(JsonObject request) {
         if (request!=null){
+            System.out.println("[SendToServer] "+request.toString());
             requestId=requestId+1;
             request.addProperty("requestId",requestId);
             requestMapper.put(requestId,request);
@@ -158,12 +161,14 @@ public class KafkaConsumer extends KafkaServerClient {
         System.out.println("backend server thread started");
         while (true){
             if (!isRequesting.get()) {
-//                System.out.println("polling from request queue :"+requestQueue.size());
                 final String polledRequest = requestQueue.poll();
                 try {
                     isRequesting.set(true);
                     if (polledRequest != null) {
+                        System.out.println("[Polling Request] "+polledRequest);
                         write(polledRequest);
+                    }else {
+                        isRequesting.set(false);
                     }
                 } catch (InterruptedException | IOException e) {
                     e.printStackTrace();
@@ -205,8 +210,8 @@ public class KafkaConsumer extends KafkaServerClient {
 
     @Override
     protected void onRead(String readData) {
-        isRequesting.set(false);
-        System.out.println(readData);
+//        isRequesting.set(false);
+        System.out.println("[ResponseFromServer] "+readData);
         final JsonObject readJson = new Gson().fromJson(readData, JsonObject.class);
         final RequestType requestType = RequestType.valueOf(readJson.get("requestType").getAsString());
         final long requestId=readJson.get("requestId").getAsLong();
@@ -229,18 +234,18 @@ public class KafkaConsumer extends KafkaServerClient {
                 partitionRequestStatus.put(partitionId, false);
                 if (offset == -1) {
                     sendRecordReadRequestToServer(partitionId, partitionRequest.get(partitionId));
-                    sendNextRequestToServer();
+//                    sendNextRequestToServer();
                 } else {
                     sendRecordReadRequestToServer(partitionId, getConsumerRecordReadRequest(partitionId, offset+1, false));
                     consumerRecordsQueue.add(consumerRecords);
-                    System.out.println("records size : "+consumerRecordsQueue.size());
+                    System.out.println("[Consumer Record] after adding | size : "+consumerRecordsQueue.size());
                     // add data to read queue
                     // add offset commit logic
-                    if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
-                        sendNextRequestToServer();
-                    } else {
-                        sendOffsetCommitRequest(partitionId, offset);
-                    }
+//                    if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
+//                        sendNextRequestToServer();
+//                    } else {
+//                        sendOffsetCommitRequest(partitionId, offset);
+//                    }
                 }
             } else if (requestType == RequestType.CONSUMER_OFFSET_COMMIT) {
                 sendNextRequestToServer();
@@ -256,12 +261,12 @@ public class KafkaConsumer extends KafkaServerClient {
             }
         }
         requestMapper.remove(requestId);
+        isRequesting.set(false);
 
     }
 
-    private void sendNextRequestToServer() {
+    public void sendNextRequestToServer() {
         if (consumerRecordsQueue.remainingCapacity() > 0) {
-//            System.out.println("sending to server");
             sendToServer(getReadRequest());
         }
     }
@@ -273,18 +278,11 @@ public class KafkaConsumer extends KafkaServerClient {
     }
 
     public JsonObject getRecords() throws InterruptedException {
-//        System.out.println("getting records by consumer");
-
-//        System.out.println("consumer record queue : "+consumerRecordsQueue.remainingCapacity());
-//        System.out.println("read request record queue : "+readRequestQueue.size());
-        if (consumerRecordsQueue.size()<=0) {
-//            System.out.println("sending next request to server");
+        while (consumerRecordsQueue.size()==0){
             sendNextRequestToServer();
+            Thread.sleep(2000);
         }
-
-        Thread.sleep(1000);
-        final JsonObject take = consumerRecordsQueue.take();
-        System.out.println("records size after read : "+readRequestQueue.size());
+        final JsonObject take = consumerRecordsQueue.takeFirst();
         if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
             // send the commit request to server
             sendNextRequestToServer();
@@ -301,22 +299,28 @@ public class KafkaConsumer extends KafkaServerClient {
 
     @Override
     protected void onSend(String message) {
-        System.out.println(message);
+        System.out.println("[OnSend] "+message);
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Properties properties = new Properties();
         properties.setProperty("kafka.topic.name", "testtopic");
-        properties.setProperty("kafka.server.address","10.10.5.30");
-        properties.setProperty("kafka.server.port","31491");
+//        properties.setProperty("kafka.server.address","10.10.5.30");
+//        properties.setProperty("kafka.server.port","31491");
+        properties.setProperty("kafka.server.address","localhost");
+        properties.setProperty("kafka.server.port","9999");
         KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);
         kafkaConsumer.connect();
 
         while (true){
             final JsonObject records = kafkaConsumer.getRecords();
-//            kafkaConsumer.sendNextRequestToServer();
+            final JsonArray records1 = records.getAsJsonArray("records");
             System.out.println("read records : "+records);
-            Thread.sleep(1000);
+            records1.forEach(jsonElement -> System.out.println(jsonElement.toString()));
+
+            System.out.println("size:"+records.toString().length());
+//            kafkaConsumer.sendNextRequestToServer();
+            Thread.sleep(100);
         }
     }
 }
