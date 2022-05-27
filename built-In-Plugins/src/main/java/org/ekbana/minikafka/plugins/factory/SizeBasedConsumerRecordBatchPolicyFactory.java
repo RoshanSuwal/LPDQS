@@ -21,7 +21,7 @@ public class SizeBasedConsumerRecordBatchPolicyFactory implements PolicyFactory<
 
     @Override
     public Policy<ConsumerRecords> buildPolicy(Properties properties) {
-        long consumerRecordsBatchSize=Long.parseLong(properties.getProperty("broker.consumer.records.batch.size","5242880"));// 5MB by default
+        long consumerRecordsBatchSize=Long.parseLong(properties.getProperty("broker.consumer.records.batch.size","1000000"));// 1MB by default
         return new SizeBasedConsumerRecordBatchPolicy(consumerRecordsBatchSize);
     }
 }

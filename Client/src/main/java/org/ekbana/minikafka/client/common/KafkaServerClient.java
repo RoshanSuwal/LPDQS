@@ -54,17 +54,24 @@ public  abstract class KafkaServerClient {
 
     private void read() throws IOException {
         while (socketChannel.isConnected()) {
+//            System.out.println("BUFFER_SIZE:"+BUFFER_SIZE);
             ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);// fixed size
+//            System.out.println(buffer.reset());
+            buffer.clear();
+//            System.out.println("[OnRead] buffer pos 0 : "+buffer.position());
             final int read = socketChannel.read(buffer);
+//            System.out.println("[OnRead] buffer size :"+read+ " capacity :"+ buffer.remaining());
+            buffer.flip();
+//            System.out.println("[OnRead] buffer pos 1: "+buffer.position());
             if (read==-1){
                 break;
             }
             if (read > 0) {
                 byte[] readByte=new byte[read];
                 System.arraycopy(buffer.array(),0,readByte,0,read);
-                onRead(new String(readByte).trim());
+                onRead(new String(readByte));
             }
-            buffer.flip();
+            buffer.clear();
         }
         System.out.println("read thread closed");
         close();

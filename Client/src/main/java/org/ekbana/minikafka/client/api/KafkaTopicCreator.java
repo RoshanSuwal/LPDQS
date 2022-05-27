@@ -90,11 +90,11 @@ public class KafkaTopicCreator extends KafkaServerClient {
 
     public static void main(String[] args) throws IOException {
         Properties properties=new Properties();
-//        properties.setProperty("kafka.server.address","10.10.5.30");
-//        properties.setProperty("kafka.server.port","31491");
-        properties.setProperty("kafka.server.address","localhost");
-        properties.setProperty("kafka.server.port","9999");
-        properties.setProperty("kafka.topic.name","testtopic");
+        properties.setProperty("kafka.server.address","10.10.5.30");
+        properties.setProperty("kafka.server.port","31491");
+//        properties.setProperty("kafka.server.address","localhost");
+//        properties.setProperty("kafka.server.port","9999");
+        properties.setProperty("kafka.topic.name","tweets");
         properties.setProperty("kafka.topic.numberOfPartitions","1");
         final KafkaTopicCreator kafkaTopicCreator = new KafkaTopicCreator(properties);
         kafkaTopicCreator.create();

@@ -283,12 +283,12 @@ public class KafkaConsumer extends KafkaServerClient {
             Thread.sleep(2000);
         }
         final JsonObject take = consumerRecordsQueue.takeFirst();
-        if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
-            // send the commit request to server
-            sendNextRequestToServer();
-        }else {
-            sendNextRequestToServer();
-        }
+//        if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
+//            // send the commit request to server
+//            sendNextRequestToServer();
+//        }else {
+//            sendNextRequestToServer();
+//        }
         return take;
     }
 
@@ -303,12 +303,13 @@ public class KafkaConsumer extends KafkaServerClient {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
+//        System.setProperty("bufferSize","5000000");
         Properties properties = new Properties();
-        properties.setProperty("kafka.topic.name", "testtopic");
-//        properties.setProperty("kafka.server.address","10.10.5.30");
-//        properties.setProperty("kafka.server.port","31491");
-        properties.setProperty("kafka.server.address","localhost");
-        properties.setProperty("kafka.server.port","9999");
+        properties.setProperty("kafka.topic.name", "tweets");
+        properties.setProperty("kafka.server.address","10.10.5.30");
+        properties.setProperty("kafka.server.port","31491");
+//        properties.setProperty("kafka.server.address","localhost");
+//        properties.setProperty("kafka.server.port","9999");
         KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);
         kafkaConsumer.connect();
 
