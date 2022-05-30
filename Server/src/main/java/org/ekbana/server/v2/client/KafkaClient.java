@@ -3,6 +3,7 @@ package org.ekbana.server.v2.client;
 import com.google.gson.Gson;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.ekbana.minikafka.common.MessageParser;
 import org.ekbana.server.common.KafkaServer;
 import org.ekbana.server.common.cm.response.KafkaClientResponse;
 
@@ -18,7 +19,7 @@ public class KafkaClient implements KafkaServer.KafkaServerClient {
 
     public void send(KafkaClientResponse kafkaClientResponse){
         try {
-            socketChannel.write(ByteBuffer.wrap(new Gson().toJson(kafkaClientResponse).getBytes()));
+            socketChannel.write(ByteBuffer.wrap(new MessageParser().encode(new Gson().toJson(kafkaClientResponse).getBytes())));
         } catch (Exception e) {
             e.printStackTrace();
         }

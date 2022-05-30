@@ -3,6 +3,7 @@ package org.ekbana.server.leader;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.ekbana.minikafka.common.MessageParser;
 import org.ekbana.minikafka.common.Node;
 import org.ekbana.server.common.KafkaServer;
 
@@ -32,7 +33,7 @@ public class LeaderClient implements KafkaServer.KafkaServerClient {
 
     public synchronized void send(byte[] bytes){
         try {
-            socketChannel.write(ByteBuffer.wrap(bytes));
+            socketChannel.write(ByteBuffer.wrap(new MessageParser().encode(bytes)));
             Thread.sleep(100);
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

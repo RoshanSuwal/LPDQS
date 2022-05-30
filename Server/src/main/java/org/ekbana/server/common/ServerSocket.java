@@ -1,5 +1,6 @@
 package org.ekbana.server.common;
 
+import org.ekbana.minikafka.common.MessageParser;
 import org.ekbana.server.util.KafkaLogger;
 
 import java.io.IOException;
@@ -88,22 +89,31 @@ public abstract class ServerSocket<T> {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         final KafkaServer.KafkaServerListener portListener = (KafkaServer.KafkaServerListener) getPortListener(socketChannel.socket().getLocalPort());
         try {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-            int numRead = -1;
-            numRead = socketChannel.read(byteBuffer);
-            byteBuffer.flip();
+            MessageParser messageParser=new MessageParser();
 
-            if (numRead == -1) {
-                portListener.onConnectionClose((KafkaServer.KafkaServerClient) selectionKey.attachment());
-                closeConnection(selectionKey);
-            } else {
-                // send read
-                byte[] readByte = new byte[numRead];
-                System.arraycopy(byteBuffer.array(), 0, readByte, 0, numRead);
-//            onRead((T) selectionKey.attachment(),readByte);
-                portListener.onRead((KafkaServer.KafkaServerClient) selectionKey.attachment(), readByte);
+            while (!messageParser.hasReadAllBytes()) {
+                ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+                int numRead = -1;
+                byteBuffer.clear();
+                numRead = socketChannel.read(byteBuffer);
+                byteBuffer.flip();
+
+                if (numRead == -1) {
+                    portListener.onConnectionClose((KafkaServer.KafkaServerClient) selectionKey.attachment());
+                    closeConnection(selectionKey);
+                    break;
+                } else {
+                    // send read
+                    byte[] readByte = new byte[numRead];
+                    System.arraycopy(byteBuffer.array(), 0, readByte, 0, numRead);
+                    messageParser.parse(readByte);
+                    if (messageParser.hasReadAllBytes()) {
+                        portListener.onRead((KafkaServer.KafkaServerClient) selectionKey.attachment(), messageParser.messageBytes());
+                        break;
+                    }
+                }
+                byteBuffer.clear();
             }
-            byteBuffer.clear();
         }catch (IOException e){
             e.printStackTrace();
             portListener.onConnectionClose((KafkaServer.KafkaServerClient) selectionKey.attachment());

@@ -1,5 +1,7 @@
 package org.ekbana.server.common;
 
+import org.ekbana.minikafka.common.MessageParser;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
@@ -32,13 +34,15 @@ public abstract class ClientSocket {
 
     public void write(byte[] bytes) throws IOException {
 //        System.out.println("sending to leader");
-        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(new MessageParser().encode(bytes));
+//        System.out.println("[send to leader] msg :"+bytes.length+" | encoded :"+byteBuffer.array().length);
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
     }
 
     private void read() throws ConnectException {
         try {
+            MessageParser messageParser=new MessageParser();
             while (socketChannel.isConnected()) {
                 ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
                 final int readByteCount = socketChannel.read(byteBuffer);
@@ -48,7 +52,11 @@ public abstract class ClientSocket {
                 } else if (readByteCount > 0) {
                     byte[] readByte=new byte[readByteCount];
                     System.arraycopy(byteBuffer.array(),0,readByte,0,readByteCount);
-                    onRead(readByte);
+                    messageParser.parse(readByte);
+                    if (messageParser.hasReadAllBytes()){
+                        onRead(messageParser.messageBytes());
+                        messageParser=new MessageParser();
+                    }
                 }
                 byteBuffer.clear();
 

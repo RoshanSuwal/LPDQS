@@ -1,5 +1,7 @@
 package org.ekbana.minikafka.client.common;
 
+import org.ekbana.minikafka.common.MessageParser;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -45,7 +47,7 @@ public  abstract class KafkaServerClient {
 
     public void write(String  message) throws IOException, InterruptedException {
 //        Thread.sleep(100);
-        ByteBuffer buffer=ByteBuffer.wrap(message.getBytes());
+        ByteBuffer buffer=ByteBuffer.wrap(new MessageParser().encode(message.getBytes()));
         socketChannel.write(buffer);
         onSend(message);
         buffer.clear();
@@ -53,9 +55,10 @@ public  abstract class KafkaServerClient {
     }
 
     private void read() throws IOException {
+        MessageParser messageParser=new MessageParser();
         while (socketChannel.isConnected()) {
 //            System.out.println("BUFFER_SIZE:"+BUFFER_SIZE);
-            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);// fixed size
+            ByteBuffer buffer = ByteBuffer.allocate(10);// fixed size
 //            System.out.println(buffer.reset());
             buffer.clear();
 //            System.out.println("[OnRead] buffer pos 0 : "+buffer.position());
@@ -69,7 +72,11 @@ public  abstract class KafkaServerClient {
             if (read > 0) {
                 byte[] readByte=new byte[read];
                 System.arraycopy(buffer.array(),0,readByte,0,read);
-                onRead(new String(readByte));
+                messageParser.parse(readByte);
+                if (messageParser.hasReadAllBytes()){
+                    onRead(new String(messageParser.messageBytes()));
+                    messageParser=new MessageParser();
+                }
             }
             buffer.clear();
         }
