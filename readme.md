@@ -1,6 +1,7 @@
-# Mini Kafka System
+# Lightweight Distributed Message Queue System 
 
-MiniKafka system is a simple message broker system (lite version of Kafka) working in distributed architecture. 
+
+LWDMQS is resource-light distributed event streaming platform for data pipelines, stream analytics, and data integration. 
 
 ## Broker
 contains all the logic for storing and fetching producerRecords from particular topic
