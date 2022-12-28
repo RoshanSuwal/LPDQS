@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'org.springframework.boot' version '2.4.1'
 }
 
 group 'org.ekbana'
@@ -9,8 +10,15 @@ repositories {
     mavenCentral()
 }
 
+jar {
+    enabled = true
+//    from {
+//        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+//    }
+}
+
 dependencies {
 //    testCompile group: 'junit', name: 'junit', version: '4.12'
-    implementation 'com.google.code.gson:gson:2.9.0'
     implementation project(":common")
+    implementation 'com.google.code.gson:gson:2.9.0'
 }

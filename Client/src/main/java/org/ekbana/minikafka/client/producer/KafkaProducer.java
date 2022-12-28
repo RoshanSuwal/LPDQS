@@ -183,18 +183,18 @@ public class KafkaProducer extends KafkaServerClient {
         Properties properties=new Properties();
 //        properties.setProperty("kafka.server.address","localhost");
 //        properties.setProperty("kafka.server.port","9999");
-        properties.setProperty("kafka.server.address","10.10.5.30");
-        properties.setProperty("kafka.server.port","31491");
-        properties.setProperty("kafka.topic.name","testtopic");
+//        properties.setProperty("kafka.server.address","10.10.5.30");
+//        properties.setProperty("kafka.server.port","31491");
+        properties.setProperty("kafka.topic.name","pythonTopic");
 //        properties.setProperty("kafka.topic.partition","0");
         KafkaProducer kafkaProducer=new KafkaProducer(properties);
         kafkaProducer.connect();
 
-        for (int i=0;i<2;i++) {
+        for (int i=0;i<50;i++) {
             kafkaProducer.send("hello world");
             kafkaProducer.send("second message");
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

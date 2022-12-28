@@ -39,7 +39,7 @@ public class Leaf {
     }
 
     public void evaluateLeafAvailabilityStatus(Policy<SegmentMetaData> policy) {
-        if (!policy.validate(segmentMetaData)){
+        if (!policy.validate(node.getSegmentMetaData())){
             this.node.setStatus(false);
         }
         BrokerLogger.searchTreeLogger.info("leaf availability status : {}",node.getStatus().get());

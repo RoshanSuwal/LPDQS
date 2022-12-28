@@ -25,6 +25,7 @@ public  abstract class KafkaServerClient {
     }
 
     public void connect() throws IOException {
+        System.out.println("[SOCKET] connecting to "+inetSocketAddress.getHostName()+":"+inetSocketAddress.getPort());
         socketChannel=SocketChannel.open();
         socketChannel.configureBlocking(true);
         socketChannel.connect(inetSocketAddress);
@@ -32,9 +33,11 @@ public  abstract class KafkaServerClient {
 
         new Thread(()-> {
             try {
+                System.out.printf("read thread started");
                 read();
             } catch (IOException e) {
                 e.printStackTrace();
+                onClose();
             }
         }).start();
 
@@ -56,9 +59,9 @@ public  abstract class KafkaServerClient {
 
     private void read() throws IOException {
         MessageParser messageParser=new MessageParser();
-        while (socketChannel.isConnected()) {
+        while (isConnected() ) {
 //            System.out.println("BUFFER_SIZE:"+BUFFER_SIZE);
-            ByteBuffer buffer = ByteBuffer.allocate(10);// fixed size
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);// fixed size
 //            System.out.println(buffer.reset());
             buffer.clear();
 //            System.out.println("[OnRead] buffer pos 0 : "+buffer.position());
@@ -82,6 +85,13 @@ public  abstract class KafkaServerClient {
         }
         System.out.println("read thread closed");
         close();
+    }
+
+    public boolean isConnected(){
+        return this.socketChannel.isConnected()
+                && this.socketChannel.isOpen()
+                && this.socketChannel.socket().isConnected()
+                && !this.socketChannel.socket().isClosed();
     }
 
     protected void close(){

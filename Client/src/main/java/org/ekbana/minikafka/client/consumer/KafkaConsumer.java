@@ -13,10 +13,17 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class KafkaConsumer extends KafkaServerClient {
 
+    public interface ConsumerEventListener{
+        void onConnectionCreated();
+        void onConnectionClosed();
+        void onConsumerConfigured();
+    }
     private final Properties properties;
     private ServerState serverState;
 
@@ -33,11 +40,17 @@ public class KafkaConsumer extends KafkaServerClient {
     private AtomicBoolean isRequesting;
     private AtomicBoolean isSendToServerThreadStarted;
 
+    private AtomicInteger simultaneousAttempt;
+
     private long requestId=0;
 
     private Map<Long,JsonObject> requestMapper;
+    private final ConsumerEventListener consumerEventListener;
 
     public KafkaConsumer(Properties properties) {
+        this(properties,null);
+    }
+    public KafkaConsumer(Properties properties,ConsumerEventListener consumerEventListener) {
         super(properties.getProperty("kafka.server.address", "localhost"), Integer.parseInt(properties.getProperty("kafka.server.port", "9999")));
         this.properties = properties;
         this.serverState = ServerState.NOT_CONNECTED;
@@ -45,9 +58,11 @@ public class KafkaConsumer extends KafkaServerClient {
         this.isSendToServerThreadStarted=new AtomicBoolean(false);
         requestQueue = new LinkedBlockingDeque<>(10);
         readRequestQueue=new LinkedBlockingDeque<>();
-        consumerRecordsQueue = new LinkedBlockingDeque<>(10);
+        consumerRecordsQueue = new LinkedBlockingDeque<>(5);
         isRequesting=new AtomicBoolean(false);
         requestMapper=new HashMap<>();
+        this.consumerEventListener=consumerEventListener;
+        this.simultaneousAttempt=new AtomicInteger(0);
     }
 
     public JsonObject getAuthRequest() {
@@ -100,6 +115,7 @@ public class KafkaConsumer extends KafkaServerClient {
         readRequestQueue.add(readRecordRequest);
         System.out.println("[Read Request Queue] after adding : size : "+readRequestQueue.size());
         System.out.println("[Read Request Queue]"+readRecordRequest.toString());
+        sendNextRequestToServer();
 //        sendToServer(readRecordRequest);
 //        System.out.println("added records to record queue : "+readRequestQueue.size());
 
@@ -158,9 +174,8 @@ public class KafkaConsumer extends KafkaServerClient {
     }
 
     private void sendToServerBack(){
-        System.out.println("backend server thread started");
-        while (true){
-            if (!isRequesting.get()) {
+        while (isConnected()){
+            if (!isRequesting.get() && consumerRecordsQueue.remainingCapacity()>0) {
                 final String polledRequest = requestQueue.poll();
                 try {
                     isRequesting.set(true);
@@ -184,6 +199,9 @@ public class KafkaConsumer extends KafkaServerClient {
                 throw new RuntimeException(e);
             }
         }
+
+        close();
+
     }
 
     private void consumerConfigured(JsonObject topicJson) {
@@ -206,12 +224,14 @@ public class KafkaConsumer extends KafkaServerClient {
     @Override
     protected void onConnect() {
         System.out.println("Connected to server successfully");
+        if (consumerEventListener!=null) consumerEventListener.onConnectionCreated();
     }
 
     @Override
     protected void onRead(String readData) {
 //        isRequesting.set(false);
         System.out.println("[ResponseFromServer] "+readData);
+        this.simultaneousAttempt.set(0);
         final JsonObject readJson = new Gson().fromJson(readData, JsonObject.class);
         final RequestType requestType = RequestType.valueOf(readJson.get("requestType").getAsString());
         final long requestId=readJson.get("requestId").getAsLong();
@@ -279,8 +299,13 @@ public class KafkaConsumer extends KafkaServerClient {
 
     public JsonObject getRecords() throws InterruptedException {
         while (consumerRecordsQueue.size()==0){
+            simultaneousAttempt.set(simultaneousAttempt.get()+1);
             sendNextRequestToServer();
-            Thread.sleep(2000);
+            if (simultaneousAttempt.get()>10) {
+                close();
+                throw new RuntimeException("Connection Closed due to no response from server");
+            }
+            Thread.sleep(500);
         }
         final JsonObject take = consumerRecordsQueue.takeFirst();
 //        if (Boolean.parseBoolean(properties.getProperty("kafka.consumer.group.commit.afterDataRead", "true"))) {
@@ -295,6 +320,9 @@ public class KafkaConsumer extends KafkaServerClient {
     @Override
     protected void onClose() {
         System.out.println("Connection Closed");
+        if (consumerEventListener!=null)
+            consumerEventListener.onConnectionClosed();
+        else System.exit(0);
     }
 
     @Override
@@ -302,26 +330,73 @@ public class KafkaConsumer extends KafkaServerClient {
         System.out.println("[OnSend] "+message);
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args)  {
 //        System.setProperty("bufferSize","5000000");
         Properties properties = new Properties();
-        properties.setProperty("kafka.topic.name", "tweets");
-        properties.setProperty("kafka.server.address","10.10.5.30");
-        properties.setProperty("kafka.server.port","31491");
+        properties.setProperty("kafka.topic.name", "pythonTopic");
+        properties.setProperty("kafka.server.address", "localhost");
+        properties.setProperty("kafka.server.port", "9999");
+//        properties.setProperty("kafka.server.address", "10.10.5.30");
+//        properties.setProperty("kafka.server.port", "31491");
 //        properties.setProperty("kafka.server.address","localhost");
 //        properties.setProperty("kafka.server.port","9999");
-        KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);
-        kafkaConsumer.connect();
 
-        while (true){
-            final JsonObject records = kafkaConsumer.getRecords();
-            final JsonArray records1 = records.getAsJsonArray("records");
-            System.out.println("read records : "+records);
-            records1.forEach(jsonElement -> System.out.println(jsonElement.toString()));
+        AtomicBoolean isConnected = new AtomicBoolean(true);
+        KafkaConsumer.ConsumerEventListener consumerEventListener = new ConsumerEventListener() {
+            @Override
+            public void onConnectionCreated() {
+                isConnected.set(true);
+            }
 
-            System.out.println("size:"+records.toString().length());
+            @Override
+            public void onConnectionClosed() {
+                isConnected.set(false);
+            }
+
+            @Override
+            public void onConsumerConfigured() {
+
+            }
+        };
+
+        while (true) {
+            try {
+                KafkaConsumer kafkaConsumer = new KafkaConsumer(properties, consumerEventListener);
+                System.out.println("starting connection");
+                kafkaConsumer.connect();
+
+                Thread.sleep(5000);
+                System.out.println("connecting");
+                while (isConnected.get()) {
+                    try {
+                        final JsonObject records = kafkaConsumer.getRecords();
+                        final JsonArray records1 = records.getAsJsonArray("records");
+                        System.out.println("read records : " + records);
+                        records1.forEach(jsonElement -> System.out.println(jsonElement.toString()));
+
+                        System.out.println("size:" + records.toString().length());
 //            kafkaConsumer.sendNextRequestToServer();
-            Thread.sleep(100);
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                System.out.println("closed");
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
+
     }
 }

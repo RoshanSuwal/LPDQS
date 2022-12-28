@@ -88,7 +88,7 @@ public class KafkaTopicDeleter extends KafkaServerClient {
         Properties properties=new Properties();
         properties.setProperty("kafka.server.address","10.10.5.30");
         properties.setProperty("kafka.server.port","31491");
-        properties.setProperty("kafka.topic.name","test");
+        properties.setProperty("kafka.topic.name","tweets");
 //        properties.setProperty("kafka.topic.numberOfPartitions","2");
         final KafkaTopicDeleter kafkaTopicDeleter = new KafkaTopicDeleter(properties);
         kafkaTopicDeleter.delete();

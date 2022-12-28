@@ -1,6 +1,7 @@
 package org.ekbana.minikafka.common;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class MessageParser {
     /**
@@ -74,28 +75,6 @@ public class MessageParser {
         }
         final String s = new String(messageBytes);
         return s;
-    }
-
-    public static void main(String[] args) {
-        MessageParser messageParser=new MessageParser();
-
-        final byte[] hello_worlds = messageParser.encode("hello world");
-
-        byte[] split1=new byte[4];
-        byte[] split2=new byte[hello_worlds.length-4];
-
-        for (int i=0;i< hello_worlds.length;i++){
-            if (i<4)
-                split1[i]=hello_worlds[i];
-            else split2[i-4]=hello_worlds[i];
-        }
-//        final String decode = messageParser.decode(hello_worlds);
-//        System.out.println(decode);
-        messageParser.parse(split1);
-        System.out.println(messageParser.hasReadAllBytes());
-        messageParser.parse(split2);
-        System.out.println(messageParser.hasReadAllBytes());
-        System.out.println(messageParser.decodedMessage());
     }
 
 }
